@@ -1,4 +1,4 @@
-# iDoklad · Analýza aplikace pro Manymy
+# iDoklad · Analýza aplikace pro Manymi
 
 Analýza vychází z průzkumu přihlášeného iDokladu dne 24. listopadu 2026. Popisuje obrazovky a dostupné ovládací prvky. Operace nad živými doklady, účtem a integracemi zůstaly bez provedení. Cesty jsou relativní vůči `https://app.idoklad.cz`.
 
@@ -135,7 +135,7 @@ Kontakty mají seznam s vyhledáváním a akcemi. Úprava existujícího záznam
 - **Předání účetní** má dvě místa v produktu. Komunikační nastavení uchovává účetní kontakt, pravidelná faktura umožňuje zahrnout účetní mezi adresáty. Účetní export se připravuje výběrem programu, období a skupin dokladů.
 - **API** ukazuje kvótu volání, správu klientských klíčů a přehled připojených aplikací s vytvořením a expirací. Hodnoty klíčů v dokumentaci nejsou. **GDPR** popisuje uložení a zabezpečení údajů. E-shopový konektor nebyl v těchto kartách samostatně zobrazen.
 
-## Datový model pro Manymy
+## Datový model pro Manymi
 
 | Entita | Obsah a relace |
 | --- | --- |
@@ -150,7 +150,7 @@ Kontakty mají seznam s vyhledáváním a akcemi. Úprava existujícího záznam
 | Komunikace a přílohy | Příloha má typ, bezpečně uložený soubor a vazbu k dokladu. Událost komunikace zaznamená typ, čas, příslušný doklad, adresáta a výsledek doručení. |
 | Export a audit | Export eviduje typ, období nebo vybrané doklady a výsledek. Auditní události zachytí vystavení, změny, odeslání, úhrady a opravy. |
 
-Pro Manymy je vhodné udržovat oddělený stav vystavení, doručení a vypořádání dokladu. Číslo rezervovat transakčně, částky počítat v desetinné aritmetice a opakované importy nebo generování chránit klíčem idempotence.
+Pro Manymi je vhodné udržovat oddělený stav vystavení, doručení a vypořádání dokladu. Číslo rezervovat transakčně, částky počítat v desetinné aritmetice a opakované importy nebo generování chránit klíčem idempotence.
 
 | Fáze | Rozsah |
 | --- | --- |
@@ -160,6 +160,6 @@ Pro Manymy je vhodné udržovat oddělený stav vystavení, doručení a vypoř�
 
 ## Rozsah ověření
 
-Průzkum pokryl hlavní navigaci, dostupné seznamy, nové formuláře z rychlé nabídky, kartu příloh, filtr a nabídku vydaných faktur, účetní podklady a podzáložky nastavení. Pro Manymy jsou nejdůležitější vztahy mezi doklady, oddělené evidence úhrad a opakovaných předpisů a možnost nastavit výchozí hodnoty na úrovni firmy a kontaktu.
+Průzkum pokryl hlavní navigaci, dostupné seznamy, nové formuláře z rychlé nabídky, kartu příloh, filtr a nabídku vydaných faktur, účetní podklady a podzáložky nastavení. Pro Manymi jsou nejdůležitější vztahy mezi doklady, oddělené evidence úhrad a opakovaných předpisů a možnost nastavit výchozí hodnoty na úrovni firmy a kontaktu.
 
 Některé seznamy byly prázdné, včetně prodejek, účtenek a pokladních dokladů. U nich bylo možné ověřit vstupy a prázdný stav. Přesný tarifní nárok jednotlivých funkcí, samostatný e-shopový konektor, ISDOC, podmínky zobrazení QR platby a některé větve měnových a daňových režimů zůstaly neověřené. Stejně tak zůstává otevřený úplný katalog stavů, pravidla automatického párování, intervaly upomínek a výsledek skutečných exportů či odeslání. V produkčním účtu nebyly provedeny žádné zápisové akce.
