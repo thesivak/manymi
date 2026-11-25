@@ -1,8 +1,8 @@
-# Manymy — grafický návrh a design systém
+# Manymi — grafický návrh a design systém
 
 > Verze 0.1 · listopad 2026 · interaktivní ukázka: [`mockup.html`](./mockup.html)
 
-Manymy je česká online aplikace pro vystavování faktur pro OSVČ a malé firmy (obdoba iDoklad / Fakturoid). Vizuálně vychází ze **švýcarského editoriálního minimalismu** webu `sivak.ai`: inkoust na papíře, sebevědomá typografie, ostré linky, žádná dekorace navíc.
+Manymi je česká online aplikace pro vystavování faktur pro OSVČ a malé firmy (obdoba iDoklad / Fakturoid). Vizuálně vychází ze **švýcarského editoriálního minimalismu** webu `sivak.ai`: inkoust na papíře, sebevědomá typografie, ostré linky, žádná dekorace navíc.
 
 ---
 
@@ -96,32 +96,34 @@ Rytmus stránky: úvod 88 / 72 px, sekce 64 px, sekce formuláře 20 / 30 px, bu
 
 ## 3. Informační architektura
 
+Aplikace záměrně negeneruje daňová přiznání ani kontrolní či souhrnná hlášení. DPH na dokladech a účetní exporty zůstávají součástí fakturace.
+
 ```
-Manymy
-├── Přehled                 souhrn měsíce, KPI, graf, odhad DPH, poslední faktury
-├── Faktury                 seznam · filtr stavů · hledání · detail · editor
-│   ├── Nová faktura        editor + živý A4 náhled
-│   ├── Zálohové faktury    (řada Z-RRRR-NNN)
-│   ├── Opravné doklady     (dobropis, storno)
-│   └── Opakované faktury   šablony s intervalem
-├── Náklady                 přijaté faktury, účtenky (upload / e-mail), DPH na vstupu
-├── Kontakty                odběratelé a dodavatelé · ARES · registr plátců DPH
-├── DPH & Reporty           přiznání, kontrolní hlášení, souhrnné hlášení, cash-flow, export pro účetní
-└── Nastavení               firma, bankovní účty, číselné řady, šablona PDF, e-maily, uživatelé, API
+Manymi
+├── Přehled (/)             měsíční KPI, graf, pohledávky a závazky
+├── Prodej (/faktury)       faktury, zálohy, daňové doklady, dobropisy, nabídky, prodejky
+│   ├── Nová (/faktury/nova) a detail (/faktury/[id]) — editor a A4 náhled
+│   └── Pravidelné faktury a Šablony — záložky Prodeje
+├── Nákup (/nakup)          přijaté faktury, účtenky, Inbox
+├── Ceník (/cenik)          položky, skladové pohyby, přehled prodeje
+├── Finance (/finance)      banka, pokladna, úhrady
+├── Kontakty (/kontakty)    adresář, ARES, historie e-mailů
+└── Nastavení (/nastaveni)  firma, účty, řady, export/import, uživatelé, MCP & API
 ```
 
-**Navigace:** bílá horní lišta 72 px se spodní linkou `#E5E7EB`. Vlevo logo (geometrický list s ohnutým rohem) a slovní značka `manymy`, malými písmeny jako `sivak.ai`. V běžném textu se píše „Manymy“. Uprostřed položky v jedné řádce (aktivní má podtržení 2 px u spodní hrany lišty). Vpravo tichý odkaz „Nastavení“ a jediné plné CTA **„+ Nová faktura“**.
+**Navigace:** bílá horní lišta 72 px se spodní linkou `#E5E7EB`. Vlevo logo (geometrický list s ohnutým rohem) a slovní značka `manymi`, malými písmeny jako `sivak.ai`. V běžném textu se píše „Manymi“. Uprostřed položky v jedné řádce (aktivní má podtržení 2 px u spodní hrany lišty). Vpravo tichý odkaz „Nastavení“ a jediné plné CTA **„+ Nová faktura“**.
 **Kontextová lišta** (44 px, na plátně): aktivní firma, IČO, DIČ, režim DPH a vpravo dnešní datum. Při více firmách se z ní stane přepínač firem.
 **Drobečková navigace** jen v hloubce (např. „Faktury / Nová faktura“) jako tichý odkaz nad nadpisem.
 
 ### Obsah sekcí
 
-- **Přehled.** Typografický úvod (věta s částkou za měsíc a po splatnosti), perex s konkrétními fakty, CTA „Vystavit fakturu“ a odkaz „Poslat upomínky (3)“. Následuje předěl, 4 KPI, graf po měsících s editorial poznámkou (odhad DPH, termín přiznání) a tabulka posledních 6 faktur.
-- **Faktury.** Filtry stavů s počty (Vše · Koncepty · Čeká na úhradu · Po splatnosti · Zaplacené · Stornované), hledání (`/` pro fokus), souhrnný řádek (počet · vystaveno · neuhrazeno · po splatnosti), řaditelná tabulka a řádkové akce podle stavu (Upomenout / Označit zaplacené / Dokončit / PDF). Hromadné akce se objeví v liště nad tabulkou po výběru řádků.
-- **Náklady.** Stejná tabulka jako u faktur (dodavatel, číslo dokladu dodavatele, DUZP, částka, DPH na vstupu, stav úhrady). Nahrání PDF nebo fotky: vytěžení údajů (IČO, VS, částky), kontrola proti ARES a registru plátců DPH. Upozornění na nespolehlivého plátce nebo nezveřejněný účet se zobrazí jako callout s karmínovou značkou.
-- **Kontakty / ARES.** Seznam odběratelů s obratem a průměrnou dobou úhrady. Nový kontakt začíná polem IČO a tlačítkem „Načíst z ARES“. Detail ukazuje historii faktur, saldo a údaje z ARES s datem posledního ověření.
-- **DPH & Reporty.** Přehled zdaňovacích období (měsíc / čtvrtletí), u každého DPH na výstupu, na vstupu a k odvodu. Následuje stav podání přiznání a kontrolního hlášení (XML pro EPO / datovou schránku) a souhrnné hlášení pro plnění do EU. Reporty: fakturace po měsících, top odběratelé, stárnutí pohledávek (0–30 / 31–60 / 60+ dní) a export pro účetní (ISDOC, CSV, Pohoda XML).
-- **Nastavení.** Firma (logo, IČO, DIČ, režim DPH, zápis v OR), bankovní účty (výchozí účet podle měny), číselné řady, šablona PDF (logo, patička, jazyk CZ / EN), e-mailové šablony a upomínky (automaticky 3 / 7 / 14 dní po splatnosti), uživatelé a role (vlastník, účetní jen pro čtení), API a webhooky.
+- **Přehled.** Měsíční a roční KPI, graf fakturace, bilance příjmů a nákladů, pohledávky a závazky a poslední doklady.
+- **Prodej.** Záložky pro všechny typy prodejních dokladů, pravidelné předpisy a šablony. Filtry stavů, hledání, hromadné akce, editor s živým A4 náhledem, převody dokladů, úhrady, PDF/ISDOC a e-maily.
+- **Nákup.** Přijaté faktury a účtenky s údaji dodavatele, ARES a evidencí úhrad. Inbox umožňuje nahrání souboru, vytěžení údajů a převod na náklad.
+- **Ceník.** Položky s cenou a DPH, skladové pohyby a přehled prodeje po položkách.
+- **Finance.** Bankovní pohyby s importem CSV a párováním úhrad, pokladní doklady a přehled plateb.
+- **Kontakty / ARES.** Adresář odběratelů s obratem a historií e-mailů. Nový kontakt začíná polem IČO a tlačítkem „Načíst z ARES“.
+- **Nastavení.** Firma a fakturace, bankovní účty, číselné řady, export/import pro účetní, více firem a pozvánky uživatelům, MCP & API klíče.
 
 ---
 
@@ -246,7 +248,7 @@ Interní stránka v aplikaci se sekcemi 01–07 (barvy, typografie, mřížka a 
 
 ## 6. Česká specifika
 
-| Téma | Pravidlo v Manymy |
+| Téma | Pravidlo v Manymi |
 |---|---|
 | **Náležitosti daňového dokladu** (§ 29 ZDPH) | označení a DIČ dodavatele i odběratele, evidenční číslo, rozsah plnění, datum vystavení, DUZP, jednotková cena bez DPH, základ, sazba a výše DPH. Editor nepustí vystavení, pokud něco chybí. |
 | **DUZP** | Výchozí hodnota je datum vystavení. Doklad je nutné vystavit do 15 dnů od DUZP, jinak editor upozorní. |

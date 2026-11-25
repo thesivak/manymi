@@ -30,3 +30,9 @@ pnpm dev                     # vývoj na http://localhost:3000
 pnpm test                    # unit, integrační, ARES, Supabase, PDF a MCP testy
 pnpm build && pnpm start     # produkční build a spuštění
 ```
+
+## Nasazování a CI
+
+Produkce na **manymi.cz** se nasazuje pouze po sloučení Pull Requestu do `main`. Do `main` se neposílají přímé pushe; změny procházejí PR. Feature a fix větve dostávají Vercel preview deploymenty pro kontrolu před sloučením.
+
+GitHub Actions pro PR do `main` a pushe do `main` spouští `pnpm lint`, `pnpm typecheck` a `pnpm test`. Kontroly nepotřebují GitHub secrets; tři databázové integrační testy se bez `DATABASE_URL` přeskočí. Lokálně lze stejné příkazy spustit po `pnpm install --frozen-lockfile`.

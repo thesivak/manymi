@@ -1,6 +1,6 @@
-# Manymy — Clean-Room funkční specifikace
+# Manymi — Clean-Room funkční specifikace
 
-> Zpracováno na základě pasivní analýzy (REA `inspect-web-network-capture` nad dočasným HAR záznamem, který byl po extrakci abstraktních schémat odstraněn) a funkčního průzkumu [`idoklad-analysis.md`](./idoklad-analysis.md). Obsahuje pouze doménová pravidla pro čistou implementaci **Manymy** bez kopírování cizího kódu či API kontraktů.
+> Zpracováno na základě pasivní analýzy (REA `inspect-web-network-capture` nad dočasným HAR záznamem, který byl po extrakci abstraktních schémat odstraněn) a funkčního průzkumu [`idoklad-analysis.md`](./idoklad-analysis.md). Obsahuje pouze doménová pravidla pro čistou implementaci **Manymi** bez kopírování cizího kódu či API kontraktů.
 
 ## 1. Zásadní doménové principy z analýzy
 
