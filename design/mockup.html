@@ -1,0 +1,1476 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manymy — fakturace</title>
+<meta name="description" content="Grafický návrh aplikace Manymy pro vystavování faktur — přehled, seznam faktur, editor s A4 náhledem a design systém.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   MANYMY — DESIGN TOKENS
+   ========================================================= */
+:root{
+  /* Inkoust a neutrální škála */
+  --ink:#0B1220;
+  --ink-2:#1E293B;
+  --text-2:#4B5563;
+  --muted:#6B7280;
+  --subtle:#9CA3AF;
+  --line-strong:#D1D5DB;
+  --line:#E5E7EB;
+  --fill:#F3F4F6;
+  --canvas:#F8F9FA;
+  --surface:#FFFFFF;
+  /* Sémantické akcenty — jen drobné značky */
+  --danger:#B91C1C;
+  --danger-on-ink:#F87171;
+  --success:#15803D;
+  /* Geometrie */
+  --r-1:2px; --r-2:3px; --r-3:4px;
+  --rule:1.5px solid var(--ink);
+  --frame:1px solid var(--ink);
+  --hair:1px solid var(--line);
+  /* Typografie */
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  /* Rozestupy (základ 4 px) */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px; --s-8:64px; --s-9:96px;
+  /* Mřížka */
+  --container:1280px; --gutter:48px;
+  --ease:cubic-bezier(.2,0,0,1);
+}
+@media (max-width:900px){ :root{ --gutter:24px; } }
+@media (max-width:560px){ :root{ --gutter:16px; } }
+
+*,*::before,*::after{ box-sizing:border-box; }
+html{ background:var(--canvas); -webkit-text-size-adjust:100%; }
+body{
+  margin:0; background:var(--canvas); color:var(--ink);
+  font-family:var(--font-ui); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+h1,h2,h3,h4,p{ margin:0; }
+a{ color:inherit; }
+button{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+.num{ font-variant-numeric:tabular-nums; }
+.muted{ color:var(--muted); }
+.small{ font-size:13px; }
+.nowrap{ white-space:nowrap; }
+.sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.container{ max-width:var(--container); margin:0 auto; padding:0 var(--gutter); }
+
+.display{
+  font-family:var(--font-display); font-stretch:86%;
+  font-weight:800; letter-spacing:-0.03em; line-height:1.08;
+}
+.h-hero{ font-size:clamp(40px,5.4vw,82px); line-height:1.06; letter-spacing:-0.035em; }
+.h-page{ font-size:clamp(36px,4.2vw,60px); }
+.h2{ font-size:clamp(30px,3.2vw,46px); line-height:1.1; }
+.h3{ font-size:22px; font-weight:700; letter-spacing:-0.02em; line-height:1.2; }
+.lead{ font-size:clamp(17px,1.5vw,20px); line-height:1.62; color:var(--text-2); max-width:62ch; }
+.eyebrow{ font-size:15px; color:var(--muted); margin-bottom:18px; }
+.rule{ border:0; border-top:var(--rule); margin:0; }
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+.topbar{ background:var(--surface); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:30; }
+.topbar__in{ display:flex; align-items:center; gap:44px; min-height:72px; }
+.brand{ display:inline-flex; align-items:center; gap:10px; text-decoration:none; }
+.brand__word{ font-family:var(--font-display); font-stretch:86%; font-weight:700; font-size:27px; letter-spacing:-0.04em; line-height:1; }
+.mainnav{ display:flex; gap:30px; flex:1; min-width:0; }
+.mainnav a{
+  position:relative; text-decoration:none; color:var(--ink-2);
+  font-size:15.5px; padding:24px 0; white-space:nowrap;
+  transition:color .15s var(--ease);
+}
+.mainnav a:hover{ color:var(--ink); }
+.mainnav a[aria-current="page"]{ color:var(--ink); text-shadow:0 0 .55px var(--ink), 0 0 .55px var(--ink); }
+.mainnav a[aria-current="page"]::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--ink); }
+.mainnav a[data-stub]{ color:var(--text-2); }
+.topbar__right{ display:flex; align-items:center; gap:24px; }
+.navquiet{ color:var(--muted); text-decoration:none; font-size:15px; }
+.navquiet:hover{ color:var(--ink); }
+
+@media (max-width:1180px){
+  .topbar__in{ flex-wrap:wrap; gap:0 24px; min-height:0; padding-top:14px; }
+  .brand{ flex:1; }
+  .mainnav{ order:3; flex-basis:100%; overflow-x:auto; gap:24px; scrollbar-width:none; margin-top:10px; }
+  .mainnav::-webkit-scrollbar{ display:none; }
+  .mainnav a{ padding:14px 0 16px; }
+}
+@media (max-width:560px){ .navquiet{ display:none; } }
+
+.contextbar{ border-bottom:1px solid var(--line); }
+.contextbar__in{ display:flex; justify-content:space-between; align-items:center; gap:16px; min-height:44px; font-size:13.5px; flex-wrap:wrap; padding-top:8px; padding-bottom:8px; }
+.contextbar strong{ font-weight:600; margin-right:10px; }
+
+/* =========================================================
+   BUTTONS & LINKS
+   ========================================================= */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  height:44px; padding:0 20px; border-radius:var(--r-2); border:1px solid transparent;
+  font:600 15px/1 var(--font-ui); text-decoration:none; cursor:pointer; white-space:nowrap;
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.btn--primary{ background:var(--ink); color:#fff; }
+.btn--primary:hover{ background:var(--ink-2); }
+.btn--outline{ background:var(--surface); color:var(--ink); border-color:var(--ink); }
+.btn--outline:hover{ background:var(--fill); }
+.btn--lg{ height:58px; padding:0 30px; font-size:17px; }
+.btn--sm{ height:34px; padding:0 12px; font-size:13.5px; }
+.btn[disabled],.btn.is-disabled{ background:var(--fill); color:var(--subtle); border-color:var(--line); cursor:not-allowed; }
+.btn.is-loading{ color:transparent; position:relative; pointer-events:none; }
+.btn.is-loading::after{ content:""; position:absolute; left:14px; right:14px; top:50%; height:2px; margin-top:-1px; background:linear-gradient(90deg,var(--ink) 0 35%,transparent 35%); background-size:200% 100%; animation:loadbar .8s linear infinite; }
+@keyframes loadbar{ from{ background-position:100% 0; } to{ background-position:-100% 0; } }
+
+.link{
+  background:none; border:0; padding:0; cursor:pointer; color:var(--ink);
+  font-weight:600; text-decoration:underline; text-decoration-thickness:1.5px; text-underline-offset:4px;
+  transition:text-decoration-color .15s var(--ease);
+}
+.link:hover{ text-decoration-thickness:2.5px; }
+.link--quiet{ font-weight:500; color:var(--text-2); text-decoration-color:var(--line-strong); text-decoration-thickness:1px; }
+.link--quiet:hover{ color:var(--ink); text-decoration-color:var(--ink); text-decoration-thickness:1px; }
+.link--danger{ color:var(--danger); }
+.actions{ display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+
+/* =========================================================
+   BADGES (stav dokladu)
+   ========================================================= */
+.badge{
+  display:inline-flex; align-items:center; gap:7px; height:26px; padding:0 9px;
+  border-radius:var(--r-1); border:1px solid transparent;
+  font-size:13px; font-weight:600; line-height:1; white-space:nowrap;
+}
+.badge::before{ content:none; width:6px; height:6px; border-radius:1px; flex:none; }
+.badge--overdue{ background:var(--ink); color:#fff; }
+.badge--overdue::before{ content:""; background:var(--danger-on-ink); }
+.badge--sent{ background:var(--surface); color:var(--ink); border-color:var(--ink); }
+.badge--paid{ background:var(--fill); color:var(--ink); border-color:var(--line-strong); }
+.badge--paid::before{ content:""; background:var(--success); }
+.badge--draft{ background:transparent; color:var(--text-2); border:1px dashed var(--subtle); }
+.badge--cancelled{ background:transparent; color:var(--muted); border-color:var(--line); text-decoration:line-through; }
+
+/* =========================================================
+   LAYOUT PRIMITIVES
+   ========================================================= */
+.view{ padding-bottom:var(--s-9); }
+.view[hidden]{ display:none; }
+.hero{ padding:88px 0 72px; }
+.hero .lead{ margin-top:36px; }
+.hero .actions{ margin-top:44px; gap:40px; }
+.split{ display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:72px; }
+@media (max-width:980px){ .split{ grid-template-columns:1fr; gap:40px; } .hero{ padding:56px 0 48px; } }
+.section{ padding:64px 0 0; }
+.section__head{ display:flex; justify-content:space-between; align-items:baseline; gap:24px; margin-bottom:24px; flex-wrap:wrap; }
+.callout{ border-left:2px solid var(--ink); padding:4px 0 4px 26px; margin-top:40px; font-size:18px; font-weight:600; line-height:1.5; max-width:46ch; }
+.callout small{ display:block; margin-top:10px; font-size:14px; font-weight:400; color:var(--text-2); line-height:1.5; }
+.caption{ font-size:14.5px; color:var(--text-2); margin-bottom:14px; }
+
+/* KPI */
+.kpis{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; padding:44px 0 4px; }
+.kpi{ padding:0 32px; border-left:1px solid var(--line); }
+.kpi:first-child{ padding-left:0; border-left:0; }
+.kpi__label{ display:flex; align-items:center; gap:8px; font-size:14.5px; font-weight:600; }
+.kpi__label .mark{ display:inline-block; width:8px; height:8px; background:var(--danger); border-radius:1px; }
+.kpi__value{ font-family:var(--font-display); font-stretch:86%; font-weight:700; letter-spacing:-0.03em; font-size:clamp(30px,3vw,44px); line-height:1.1; margin-top:14px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.kpi__value .cur{ font-size:.55em; font-weight:600; letter-spacing:-0.01em; margin-left:4px; }
+.meter{ height:8px; background:var(--line); margin-top:18px; position:relative; }
+.meter > i{ position:absolute; left:0; top:0; bottom:0; background:var(--ink); transition:width .5s var(--ease); }
+.kpi__meta{ margin-top:12px; font-size:13.5px; color:var(--muted); }
+@media (max-width:980px){
+  .kpis{ grid-template-columns:1fr 1fr; row-gap:40px; }
+  .kpi:nth-child(3){ padding-left:0; border-left:0; }
+}
+@media (max-width:520px){
+  .kpis{ grid-template-columns:1fr; }
+  .kpi{ padding-left:0; border-left:0; }
+}
+
+/* CHART */
+.chart-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; padding-bottom:16px; }
+.chart-val{ font-size:40px; font-weight:700; line-height:1.05; margin-top:4px; font-variant-numeric:tabular-nums; }
+.legend{ display:flex; gap:20px; font-size:13px; color:var(--text-2); }
+.legend span{ display:inline-flex; align-items:center; gap:8px; }
+.legend i{ display:inline-block; width:12px; height:12px; background:var(--ink); }
+.legend i.dash{ height:0; width:18px; border-top:1.5px dashed var(--ink); background:none; }
+.chart{ height:260px; position:relative; }
+.chart svg{ display:block; overflow:visible; }
+.chart text{ font-family:var(--font-ui); font-size:12px; fill:var(--muted); font-variant-numeric:tabular-nums; }
+.chart .bar{ transition:fill .15s var(--ease); }
+.chart .lbl{ fill:var(--ink); font-weight:600; font-size:12.5px; }
+.chart .m-cur{ fill:var(--ink); font-weight:600; }
+
+/* TABLE */
+.tablewrap{ border:var(--frame); background:var(--surface); overflow-x:auto; }
+.table{ width:100%; border-collapse:collapse; min-width:760px; }
+.table th{
+  text-align:left; font-size:14px; font-weight:600; color:var(--ink);
+  padding:18px 24px; border-bottom:var(--rule); white-space:nowrap; background:var(--surface);
+}
+.table td{ padding:16px 24px; border-bottom:var(--hair); vertical-align:middle; font-size:15px; }
+.table tr:last-child td{ border-bottom:0; }
+.table tbody tr{ transition:background .12s var(--ease); }
+.table tbody tr:hover{ background:#FBFBFC; }
+.table .r{ text-align:right; }
+.table .amount{ font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.table .docno{ font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.table .sub{ display:block; font-size:13px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums; }
+.table .due-late{ color:var(--danger); white-space:nowrap; }
+.th-sort{ background:none; border:0; padding:0; font:inherit; font-weight:600; cursor:pointer; display:inline-flex; gap:6px; align-items:center; }
+.th-sort .arr{ color:var(--subtle); font-size:12px; width:10px; }
+.th-sort[aria-sort] .arr{ color:var(--ink); }
+.rowacts{ display:flex; gap:18px; justify-content:flex-end; white-space:nowrap; font-size:14px; }
+.empty{ padding:56px 24px; text-align:center; color:var(--text-2); }
+.empty strong{ display:block; font-family:var(--font-display); font-stretch:86%; font-size:24px; letter-spacing:-0.02em; color:var(--ink); margin-bottom:6px; }
+
+/* FILTERS & TOOLBAR */
+.pagehead{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; padding:64px 0 36px; flex-wrap:wrap; }
+.toolbar{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; border-bottom:var(--rule); flex-wrap:wrap; }
+.tabs{ display:flex; gap:28px; overflow-x:auto; scrollbar-width:none; }
+.tabs::-webkit-scrollbar{ display:none; }
+.tab{
+  position:relative; background:none; border:0; padding:14px 0 16px; cursor:pointer;
+  font-size:15px; color:var(--text-2); white-space:nowrap; display:inline-flex; gap:8px; align-items:baseline;
+}
+.tab .cnt{ font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.tab:hover{ color:var(--ink); }
+.tab[aria-pressed="true"]{ color:var(--ink); font-weight:600; }
+.tab[aria-pressed="true"]::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--ink); }
+.tab[aria-pressed="true"] .cnt{ color:var(--ink); }
+.search{ position:relative; width:320px; max-width:100%; margin-bottom:12px; }
+.search svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); pointer-events:none; }
+.search .input{ padding-left:38px; padding-right:40px; }
+.kbd{ position:absolute; right:10px; top:50%; transform:translateY(-50%); font:600 11px/1 var(--font-mono); color:var(--muted); border:1px solid var(--line-strong); border-radius:2px; padding:4px 6px; background:var(--surface); }
+.summary{ display:flex; gap:12px 36px; flex-wrap:wrap; padding:18px 0 22px; font-size:14.5px; color:var(--text-2); }
+.summary b{ color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
+.summary .late b{ color:var(--danger); }
+@media (max-width:760px){ .search{ width:100%; } }
+
+/* =========================================================
+   FORMS
+   ========================================================= */
+.input{
+  width:100%; height:42px; padding:0 12px;
+  border:1px solid var(--line-strong); border-radius:var(--r-2); background:var(--surface);
+  font:15px/1.2 var(--font-ui); color:var(--ink);
+  transition:border-color .12s var(--ease), box-shadow .12s var(--ease), background-color .6s var(--ease);
+}
+.input::placeholder{ color:var(--subtle); }
+.input:hover{ border-color:var(--subtle); }
+.input:focus,.input.is-focus{ outline:none; border-color:var(--ink); box-shadow:0 0 0 1px var(--ink); }
+.input.is-error{ border-color:var(--danger); box-shadow:0 0 0 1px var(--danger); }
+.input:disabled{ background:var(--fill); color:var(--muted); border-color:var(--line); }
+.input.num{ font-variant-numeric:tabular-nums; }
+.input.is-filled{ background:var(--fill); }
+select.input{
+  appearance:none; -webkit-appearance:none; padding-right:34px; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%230B1220' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center;
+}
+textarea.input{ height:auto; min-height:92px; padding:10px 12px; line-height:1.5; resize:vertical; }
+input[type="date"].input{ padding-right:8px; }
+input[type="checkbox"]{ accent-color:var(--ink); width:16px; height:16px; margin:0; }
+.field{ display:flex; flex-direction:column; gap:7px; margin-bottom:18px; min-width:0; }
+.field > label, .flabel{ font-size:13.5px; font-weight:600; color:var(--ink); }
+.field > label .opt{ font-weight:400; color:var(--muted); }
+.hint{ font-size:13px; color:var(--muted); line-height:1.5; }
+.hint .link{ font-size:13px; }
+.hint--error{ color:var(--danger); }
+.hint--ok{ color:var(--ink); display:flex; align-items:center; gap:8px; }
+.hint--ok::before{ content:""; width:7px; height:7px; background:var(--success); border-radius:1px; flex:none; }
+.hint--loading{ color:var(--ink); display:flex; align-items:center; gap:10px; }
+.hint--loading::before{ content:""; width:48px; height:2px; background:linear-gradient(90deg,var(--ink) 0 40%,var(--line) 40%); background-size:200% 100%; animation:loadbar .8s linear infinite; }
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+.grid-zip{ display:grid; grid-template-columns:1fr 132px; gap:0 16px; }
+.inputgroup{ display:flex; gap:8px; }
+.inputgroup .input{ flex:1; min-width:0; }
+.inputgroup .btn{ height:42px; }
+.check{ display:flex; gap:10px; align-items:center; font-size:14.5px; cursor:pointer; }
+.seg{ display:inline-flex; border:1px solid var(--ink); border-radius:var(--r-2); overflow:hidden; background:var(--surface); }
+.seg button{ height:40px; min-width:58px; padding:0 14px; border:0; border-left:1px solid var(--ink); background:transparent; font:600 14px/1 var(--font-ui); cursor:pointer; font-variant-numeric:tabular-nums; }
+.seg button:first-child{ border-left:0; }
+.seg button:hover{ background:var(--fill); }
+.seg button[aria-pressed="true"]{ background:var(--ink); color:#fff; }
+.dueline{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+@media (max-width:560px){ .grid2,.grid-zip{ grid-template-columns:1fr; } }
+
+/* =========================================================
+   EDITOR
+   ========================================================= */
+.pagehead--editor{ padding-bottom:40px; }
+.editor{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:56px; align-items:start; }
+.preview{ position:sticky; top:96px; }
+@media (max-width:1100px){ .editor{ grid-template-columns:1fr; } .preview{ position:static; } }
+.fsec{ border-top:var(--rule); padding:20px 0 30px; }
+.fsec__head{ display:flex; align-items:baseline; gap:14px; margin-bottom:22px; }
+.fsec__no{ font-size:13px; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums; min-width:18px; }
+.fsec__title{ font-family:var(--font-display); font-stretch:86%; font-weight:700; font-size:24px; letter-spacing:-0.02em; line-height:1.1; }
+.fsec__aside{ margin-left:auto; font-size:13px; color:var(--muted); }
+
+.items__head,.item{ display:grid; grid-template-columns:72px 64px minmax(0,1fr) 84px minmax(0,1.1fr) 28px; gap:8px; align-items:center; }
+.item__desc{ grid-column:1 / 6; grid-row:1; }
+.item__del{ grid-column:6; grid-row:1; }
+.items__head{ font-size:12.5px; font-weight:600; color:var(--muted); padding-bottom:8px; border-bottom:var(--hair); }
+.items__head .r,.item .r{ text-align:right; }
+.item{ padding:12px 0; row-gap:8px; border-bottom:var(--hair); }
+.item .input{ height:38px; padding:0 9px; font-size:14.5px; }
+.item select.input{ padding-right:24px; background-position:right 8px center; }
+.item .input.num{ text-align:right; }
+.item__sum{ text-align:right; font-weight:600; font-size:14.5px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.item__del{ width:28px; height:28px; border:0; background:none; color:var(--muted); cursor:pointer; font-size:20px; line-height:1; border-radius:var(--r-1); }
+.item__del:hover{ background:var(--fill); color:var(--ink); }
+.item.is-new{ animation:rowin .35s var(--ease); }
+@keyframes rowin{ from{ background:var(--fill); } to{ background:transparent; } }
+.items__add{ margin-top:16px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+@media (max-width:640px){
+  .items__head,.item{ grid-template-columns:56px 52px minmax(0,1fr) 72px minmax(0,1fr) 28px; gap:6px; }
+}
+.totals{ margin:22px 0 0 auto; max-width:380px; }
+.totals__row{ display:flex; justify-content:space-between; gap:16px; padding:5px 0; font-size:14.5px; color:var(--text-2); }
+.totals__row span:last-child{ color:var(--ink); font-variant-numeric:tabular-nums; }
+.totals__grand{ display:flex; justify-content:space-between; align-items:baseline; gap:16px; border-top:var(--rule); margin-top:12px; padding-top:14px; }
+.totals__grand .k{ font-weight:600; }
+.totals__grand .v{ font-family:var(--font-display); font-stretch:86%; font-size:34px; font-weight:800; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.spayd{ font:12px/1.5 var(--font-mono); color:var(--text-2); background:var(--fill); padding:10px 12px; border-radius:var(--r-1); word-break:break-all; margin-top:6px; }
+
+.preview__bar{ display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:14px; font-size:13.5px; color:var(--text-2); }
+.preview__bar b{ color:var(--ink); font-weight:600; }
+.a4wrap{ container-type:inline-size; }
+.a4{
+  background:#fff; border:1px solid var(--line-strong); aspect-ratio:210 / 297;
+  padding:7.6cqw 7.2cqw 5.6cqw; font-size:1.58cqw; line-height:1.45; color:var(--ink);
+  display:flex; flex-direction:column;
+}
+.a4 .num{ font-variant-numeric:tabular-nums; }
+.a4-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:2em; }
+.a4-brand{ display:flex; align-items:center; gap:.7em; font-family:var(--font-display); font-stretch:86%; font-weight:700; font-size:1.35em; letter-spacing:-0.03em; }
+.a4-brand svg{ width:1.2em; height:auto; }
+.a4-doc{ text-align:right; }
+.a4-kicker{ font-size:.86em; color:var(--muted); }
+.a4-no{ font-family:var(--font-display); font-stretch:86%; font-weight:800; font-size:2.9em; letter-spacing:-0.035em; line-height:1; margin-top:.15em; }
+.a4-rule{ border-top:.16em solid var(--ink); margin:2.2em 0 1.8em; }
+.a4-parties{ display:grid; grid-template-columns:1fr 1fr; gap:3em; }
+.a4-label{ font-size:.8em; color:var(--muted); margin-bottom:.45em; }
+.a4-name{ font-weight:700; font-size:1.12em; line-height:1.3; margin-bottom:.25em; }
+.a4-ids{ margin-top:.5em; display:grid; grid-template-columns:auto 1fr; gap:.05em .9em; }
+.a4-ids dt{ color:var(--muted); }
+.a4-ids dd{ margin:0; }
+.a4-placeholder{ color:var(--subtle); border:1px dashed var(--line-strong); padding:1em; }
+.a4-meta{ display:grid; grid-template-columns:repeat(4,1fr); margin-top:2.2em; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.a4-meta > div{ padding:.85em 0; }
+.a4-meta > div + div{ padding-left:1em; border-left:1px solid var(--line); }
+.a4-meta b{ display:block; font-weight:600; margin-top:.15em; }
+.a4-pay{ display:grid; grid-template-columns:1.2fr 1.7fr .9fr .7fr; border-bottom:1px solid var(--line); }
+.a4-pay > div{ padding:.85em 0; }
+.a4-pay > div + div{ padding-left:1em; border-left:1px solid var(--line); }
+.a4-pay b{ display:block; font-weight:600; margin-top:.15em; white-space:nowrap; }
+.a4-items{ width:100%; border-collapse:collapse; margin-top:2.2em; }
+.a4-items th{ font-size:.82em; font-weight:600; text-align:left; padding:0 0 .6em; border-bottom:.16em solid var(--ink); }
+.a4-items td{ padding:.65em 0; border-bottom:1px solid var(--line); vertical-align:top; }
+.a4-items .r{ text-align:right; padding-left:1em; white-space:nowrap; }
+.a4-bottom{ display:grid; grid-template-columns:auto 1fr; gap:3em; margin-top:2em; align-items:start; }
+.a4-qr{ width:9.6em; }
+.a4-qr svg{ width:100%; height:auto; display:block; }
+.a4-qr__cap{ display:flex; justify-content:space-between; font-size:.76em; margin-top:.35em; color:var(--muted); }
+.a4-qr__cap b{ color:var(--ink); font-weight:700; }
+.a4-recap{ width:100%; border-collapse:collapse; font-size:.9em; }
+.a4-recap th{ font-weight:600; color:var(--muted); text-align:right; padding:0 0 .45em; border-bottom:1px solid var(--line); }
+.a4-recap th:first-child,.a4-recap td:first-child{ text-align:left; }
+.a4-recap td{ text-align:right; padding:.4em 0 .4em 1em; border-bottom:1px solid var(--line); white-space:nowrap; }
+.a4-grand{ display:flex; justify-content:space-between; align-items:baseline; border-top:.16em solid var(--ink); margin-top:1em; padding-top:.7em; gap:1em; }
+.a4-grand span{ font-weight:600; }
+.a4-grand b{ font-family:var(--font-display); font-stretch:86%; font-weight:800; font-size:2.15em; letter-spacing:-0.03em; white-space:nowrap; }
+.a4-round{ display:flex; justify-content:space-between; font-size:.86em; color:var(--muted); margin-top:.6em; }
+.a4-note{ margin-top:2em; border-left:.16em solid var(--ink); padding-left:1em; max-width:36em; }
+.a4-foot{ margin-top:auto; padding-top:1.4em; border-top:1px solid var(--line); display:flex; justify-content:space-between; gap:2em; font-size:.76em; color:var(--muted); }
+.a4-spacer{ height:2.4em; flex:none; }
+
+/* =========================================================
+   DESIGN SYSTEM VIEW
+   ========================================================= */
+.ds-sec{ display:grid; grid-template-columns:minmax(0,4fr) minmax(0,8fr); gap:64px; border-top:var(--rule); padding:40px 0 64px; }
+.ds-sec__intro p{ color:var(--text-2); margin-top:16px; max-width:40ch; }
+.ds-no{ display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:12px; font-variant-numeric:tabular-nums; }
+@media (max-width:980px){ .ds-sec{ grid-template-columns:1fr; gap:28px; } }
+.swatches{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:24px 20px; }
+.swatch__chip{ height:76px; border:1px solid var(--line); }
+.swatch__chip.dark{ border-color:var(--ink); }
+.swatch__name{ font-weight:600; margin-top:10px; font-size:14.5px; }
+.swatch__meta{ font:12.5px/1.5 var(--font-mono); color:var(--text-2); }
+.swatch__use{ font-size:13px; color:var(--muted); margin-top:4px; line-height:1.45; }
+.subhead{ font-size:14px; font-weight:600; margin:36px 0 16px; padding-bottom:10px; border-bottom:var(--hair); }
+.subhead:first-child{ margin-top:0; }
+.typerow{ display:grid; grid-template-columns:170px minmax(0,1fr); gap:24px; align-items:baseline; padding:18px 0; border-bottom:var(--hair); }
+.typerow:first-child{ padding-top:0; }
+.typerow__meta{ font:12.5px/1.6 var(--font-mono); color:var(--muted); }
+.typerow__meta b{ display:block; font-family:var(--font-ui); font-size:14px; color:var(--ink); font-weight:600; }
+@media (max-width:640px){ .typerow{ grid-template-columns:1fr; gap:8px; } }
+.spacing{ display:grid; gap:10px; }
+.spacing__row{ display:grid; grid-template-columns:110px 1fr; align-items:center; gap:16px; font:12.5px var(--font-mono); color:var(--text-2); }
+.spacing__row i{ display:block; height:12px; background:var(--ink); }
+.geo{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px; }
+.geo__box{ height:84px; background:var(--surface); border:1px solid var(--ink); }
+.geo__lbl{ margin-top:10px; font-size:13.5px; font-weight:600; }
+.geo__lbl span{ display:block; font:12.5px var(--font-mono); color:var(--muted); font-weight:400; }
+.line-demo{ height:84px; background:var(--surface); display:flex; align-items:center; padding:0 16px; }
+.line-demo i{ display:block; width:100%; }
+.demo-row{ display:flex; flex-wrap:wrap; align-items:center; gap:20px 28px; }
+.demo-cap{ font-size:12.5px; color:var(--muted); margin-top:10px; font-family:var(--font-mono); }
+.demo-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:8px 24px; }
+.badge-table td:first-child{ width:180px; }
+.ds-kpi{ max-width:320px; }
+.ds-pair{ display:grid; grid-template-columns:1fr 1fr; gap:48px; margin-top:48px; align-items:start; }
+@media (max-width:640px){ .ds-pair{ grid-template-columns:1fr; } }
+
+/* FOOTER & TOAST */
+.footer{ border-top:1px solid var(--line); padding:28px 0 40px; font-size:13px; color:var(--muted); }
+.footer .container{ display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.toast{
+  position:fixed; left:24px; bottom:24px; z-index:50; max-width:min(520px,calc(100% - 48px));
+  background:var(--ink); color:#fff; padding:14px 18px; border-radius:var(--r-2);
+  font-size:14.5px; line-height:1.45; transform:translateY(12px); opacity:0; pointer-events:none;
+  transition:opacity .2s var(--ease), transform .2s var(--ease);
+}
+.toast.is-on{ opacity:1; transform:none; }
+
+@media (prefers-reduced-motion:reduce){ *,*::before,*::after{ animation:none !important; transition:none !important; } }
+
+/* PRINT — tiskne pouze A4 doklad */
+@media print{
+  @page{ size:A4; margin:0; }
+  body{ background:#fff; }
+  body *{ visibility:hidden; }
+  .a4, .a4 *{ visibility:visible; }
+  .a4{ position:absolute; left:0; top:0; width:210mm; min-height:297mm; border:0; font-size:8.8pt; padding:16mm 15mm 12mm; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================ TOP BAR ============================ -->
+<header class="topbar">
+  <div class="container topbar__in">
+    <a class="brand" href="#prehled" aria-label="Manymy — přehled">
+      <svg width="22" height="28" viewBox="0 0 22 28" aria-hidden="true">
+        <path d="M0 0H15L22 7V28H0Z" fill="#0B1220"/>
+        <path d="M15 0V7H22" fill="#FFFFFF"/>
+        <rect x="5" y="15" width="12" height="2" fill="#FFFFFF"/>
+        <rect x="5" y="20" width="7" height="2" fill="#FFFFFF"/>
+      </svg>
+      <span class="brand__word">manymy</span>
+    </a>
+    <nav class="mainnav" aria-label="Hlavní navigace">
+      <a href="#prehled" data-view="prehled">Přehled</a>
+      <a href="#faktury" data-view="faktury">Faktury</a>
+      <a href="#naklady" data-stub="Náklady">Náklady</a>
+      <a href="#kontakty" data-stub="Kontakty">Kontakty</a>
+      <a href="#dph" data-stub="DPH &amp; Reporty">DPH &amp; Reporty</a>
+      <a href="#design" data-view="design">Design systém</a>
+    </nav>
+    <div class="topbar__right">
+      <a class="navquiet" href="#nastaveni" data-stub="Nastavení">Nastavení</a>
+      <a class="btn btn--primary" href="#nova">+ Nová faktura</a>
+    </div>
+  </div>
+</header>
+<div class="contextbar">
+  <div class="container contextbar__in">
+    <div><strong>Studio Lipa s.r.o.</strong><span class="muted num">IČO 08765430 · DIČ CZ08765430 · měsíční plátce DPH</span></div>
+    <div class="muted">Úterý 24. listopadu 2026</div>
+  </div>
+</div>
+
+<main>
+<!-- ============================ A) PŘEHLED ============================ -->
+<section class="view" id="view-prehled" data-title="Přehled">
+  <div class="container">
+    <div class="hero">
+      <p class="eyebrow">Přehled · listopad 2026 · stav k 24. 11.</p>
+      <h1 class="display h-hero">Listopad: <span class="num" data-k="month">0 Kč</span> vyfakturováno.<br><span class="num" data-k="overdue">0 Kč</span> je po splatnosti.</h1>
+      <p class="lead" data-k="lead"></p>
+      <div class="actions">
+        <a class="btn btn--primary btn--lg" href="#nova">Vystavit fakturu</a>
+        <button class="link" type="button" id="btn-remind-all" style="font-size:17px">Poslat upomínky</button>
+      </div>
+    </div>
+
+    <hr class="rule">
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="section split">
+      <div>
+        <h2 class="display h2">Fakturace<br>po měsících</h2>
+        <p class="lead" style="margin-top:24px;font-size:18px">Částky včetně DPH podle data vystavení. Najetím na sloupec zobrazíte detail měsíce. Prosinec teprve začne.</p>
+        <div class="callout" data-k="vat"></div>
+      </div>
+      <div>
+        <p class="caption">Fakturováno v roce 2026, Kč s DPH</p>
+        <div class="chart-head">
+          <div>
+            <div class="small muted" id="chart-label">Listopad 2026 · zatím</div>
+            <div class="display chart-val" id="chart-val">—</div>
+          </div>
+          <div class="legend"><span><i></i>Fakturováno</span><span><i class="dash"></i>Měsíční průměr</span></div>
+        </div>
+        <div class="chart" id="chart"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section__head">
+        <h2 class="display h3">Poslední faktury</h2>
+        <a class="link" href="#faktury">Zobrazit všechny faktury</a>
+      </div>
+      <div class="tablewrap">
+        <table class="table" id="recent-table">
+          <thead><tr><th>Číslo</th><th>Odběratel</th><th>Vystaveno</th><th>Splatnost</th><th class="r">Částka</th><th>Stav</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ B) FAKTURY ============================ -->
+<section class="view" id="view-faktury" data-title="Faktury" hidden>
+  <div class="container">
+    <div class="pagehead">
+      <div>
+        <p class="eyebrow">Doklady · řada 2026 (RRRR-NNNN)</p>
+        <h1 class="display h-page">Faktury</h1>
+      </div>
+      <div class="actions">
+        <button class="link link--quiet" type="button" id="btn-export">Export pro účetní (ISDOC)</button>
+        <a class="btn btn--primary" href="#nova">+ Nová faktura</a>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="tabs" id="tabs" role="group" aria-label="Filtr podle stavu"></div>
+      <label class="search">
+        <span class="sr-only">Hledat ve fakturách</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5.25" fill="none" stroke="#0B1220" stroke-width="1.5"/><path d="M11 11l3.5 3.5" stroke="#0B1220" stroke-width="1.5"/></svg>
+        <input class="input" id="search" type="search" placeholder="Číslo, odběratel, IČO, částka…">
+        <span class="kbd" aria-hidden="true">/</span>
+      </label>
+    </div>
+
+    <div class="summary" id="summary"></div>
+
+    <div class="tablewrap">
+      <table class="table" id="inv-table">
+        <thead>
+          <tr>
+            <th><button class="th-sort" data-sort="no">Číslo <span class="arr"></span></button></th>
+            <th>Odběratel</th>
+            <th><button class="th-sort" data-sort="issued">Vystaveno <span class="arr"></span></button></th>
+            <th><button class="th-sort" data-sort="due">Splatnost <span class="arr"></span></button></th>
+            <th class="r"><button class="th-sort" data-sort="amount">Částka <span class="arr"></span></button></th>
+            <th>Stav</th>
+            <th class="r"><span class="sr-only">Akce</span></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ C) NOVÁ FAKTURA ============================ -->
+<section class="view" id="view-nova" data-title="Nová faktura" hidden>
+  <div class="container">
+    <div class="pagehead pagehead--editor">
+      <div>
+        <p class="eyebrow"><a class="link link--quiet" href="#faktury">Faktury</a> &nbsp;/&nbsp; Nová faktura</p>
+        <h1 class="display h-page">Nová faktura <span class="num" data-bind="number">2026-0149</span></h1>
+      </div>
+      <div class="actions">
+        <button class="link" type="button" id="btn-pdf">Stáhnout PDF</button>
+        <button class="btn btn--outline" type="button" id="btn-draft">Uložit koncept</button>
+        <button class="btn btn--primary" type="button" id="btn-issue">Vystavit fakturu</button>
+      </div>
+    </div>
+
+    <div class="editor">
+      <form class="form" id="inv-form" autocomplete="off" novalidate>
+
+        <!-- 01 ODBĚRATEL -->
+        <div class="fsec">
+          <div class="fsec__head"><span class="fsec__no">01</span><h2 class="fsec__title">Odběratel</h2><span class="fsec__aside">Údaje z obchodního rejstříku přes ARES</span></div>
+          <div class="field">
+            <label for="f-ico">IČO</label>
+            <div class="inputgroup">
+              <input class="input num" id="f-ico" inputmode="numeric" maxlength="8" placeholder="8 číslic">
+              <button type="button" class="btn btn--outline" id="btn-ares">Načíst z ARES</button>
+            </div>
+            <p class="hint" id="ares-status"></p>
+          </div>
+          <div class="grid2">
+            <div class="field"><label for="f-name">Název / jméno</label><input class="input" id="f-name" data-c="name"></div>
+            <div class="field"><label for="f-dic">DIČ <span class="opt">— pokud je plátce</span></label><input class="input num" id="f-dic" data-c="dic" placeholder="CZ…"></div>
+          </div>
+          <div class="field"><label for="f-street">Ulice a číslo</label><input class="input" id="f-street" data-c="street"></div>
+          <div class="grid-zip">
+            <div class="field"><label for="f-city">Obec</label><input class="input" id="f-city" data-c="city"></div>
+            <div class="field"><label for="f-zip">PSČ</label><input class="input num" id="f-zip" data-c="zip"></div>
+          </div>
+          <div class="field" style="margin-bottom:0"><label for="f-email">E-mail pro zaslání faktury <span class="opt">— volitelné</span></label><input class="input" id="f-email" data-c="email" type="email" placeholder="fakturace@firma.cz"></div>
+        </div>
+
+        <!-- 02 DOKLAD -->
+        <div class="fsec">
+          <div class="fsec__head"><span class="fsec__no">02</span><h2 class="fsec__title">Doklad</h2></div>
+          <div class="grid2">
+            <div class="field"><label for="f-number">Číslo faktury</label><input class="input num" id="f-number"></div>
+            <div class="field"><label for="f-series">Číselná řada</label>
+              <select class="input" id="f-series"><option>Faktury 2026 · RRRR-NNNN</option><option>Zálohové 2026 · Z-RRRR-NNN</option></select>
+            </div>
+            <div class="field"><label for="f-issued">Datum vystavení</label><input class="input num" id="f-issued" type="date"></div>
+            <div class="field"><label for="f-duzp">Datum zdanitelného plnění (DUZP)</label><input class="input num" id="f-duzp" type="date"></div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <span class="flabel">Splatnost</span>
+            <div class="dueline">
+              <div class="seg" id="due-seg" role="group" aria-label="Splatnost ve dnech">
+                <button type="button" data-days="7">7 dní</button><button type="button" data-days="14">14 dní</button><button type="button" data-days="30">30 dní</button><button type="button" data-days="60">60 dní</button>
+              </div>
+              <span class="num">→ <b id="due-date">—</b></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 03 PLATBA -->
+        <div class="fsec">
+          <div class="fsec__head"><span class="fsec__no">03</span><h2 class="fsec__title">Platba</h2></div>
+          <div class="grid2">
+            <div class="field"><label for="f-method">Forma úhrady</label>
+              <select class="input" id="f-method"><option>Bankovním převodem</option><option>Hotově</option><option>Platební kartou</option></select>
+            </div>
+            <div class="field"><label for="f-account">Bankovní účet</label>
+              <select class="input num" id="f-account"></select>
+            </div>
+            <div class="field"><label for="f-vs">Variabilní symbol</label><input class="input num" id="f-vs" inputmode="numeric" maxlength="10"></div>
+            <div class="field"><label for="f-ks">Konstantní symbol <span class="opt">— volitelné</span></label><input class="input num" id="f-ks" inputmode="numeric" maxlength="4"></div>
+          </div>
+          <label class="check"><input type="checkbox" id="f-qr" checked> Připojit QR Platbu (SPAYD) do PDF i e-mailu</label>
+          <div class="field" style="margin:14px 0 0">
+            <span class="hint">IBAN <b class="num" id="iban-out" style="color:var(--ink);font-weight:600"></b> — obsah QR kódu:</span>
+            <div class="spayd" id="spayd"></div>
+          </div>
+        </div>
+
+        <!-- 04 POLOŽKY -->
+        <div class="fsec">
+          <div class="fsec__head"><span class="fsec__no">04</span><h2 class="fsec__title">Položky</h2><span class="fsec__aside">Ceny bez DPH</span></div>
+          <div class="items__head" aria-hidden="true"><span class="r">Množství</span><span>MJ</span><span class="r">Cena / MJ</span><span>DPH</span><span class="r">Celkem bez DPH</span><span></span></div>
+          <div id="items"></div>
+          <div class="items__add">
+            <button type="button" class="link" id="btn-add">+ Přidat položku</button>
+            <span class="hint">Sazby DPH 21 % a 12 % · 0 % pro osvobozená plnění</span>
+          </div>
+          <div class="totals" id="totals"></div>
+        </div>
+
+        <!-- 05 TEXT -->
+        <div class="fsec">
+          <div class="fsec__head"><span class="fsec__no">05</span><h2 class="fsec__title">Text na faktuře</h2></div>
+          <div class="field" style="margin-bottom:0">
+            <label for="f-note">Úvodní text <span class="opt">— zobrazí se nad patičkou</span></label>
+            <textarea class="input" id="f-note"></textarea>
+          </div>
+        </div>
+      </form>
+
+      <aside class="preview" aria-label="Náhled faktury">
+        <div class="preview__bar"><span><b>Náhled A4</b> · aktualizuje se při psaní</span><button class="link link--quiet" type="button" id="btn-print">Vytisknout</button></div>
+        <div class="a4wrap"><div class="a4" id="a4"></div></div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ D) DESIGN SYSTÉM ============================ -->
+<section class="view" id="view-design" data-title="Design systém" hidden>
+  <div class="container">
+    <div class="hero" style="padding-bottom:64px">
+      <p class="eyebrow">Design systém · verze 0.1</p>
+      <h1 class="display h-hero">Inkoust, papír<br>a přesná čísla.</h1>
+      <p class="lead">Manymy vychází ze švýcarského editoriálního minimalismu. Kontrast inkoustu na papíře nese hierarchii, barva je jen drobná značka a každá částka sedí v řádu díky tabulkovým číslicím.</p>
+    </div>
+
+    <!-- 01 Barvy -->
+    <div class="ds-sec">
+      <div class="ds-sec__intro"><span class="ds-no">01</span><h2 class="display h2">Barvy</h2><p>Téměř monochromatická škála. Sémantické barvy smí pokrýt nanejvýš malou značku, text chyby nebo počet dní po splatnosti, nikdy celou plochu.</p></div>
+      <div>
+        <h3 class="subhead">Inkoust a neutrály</h3>
+        <div class="swatches">
+          <div><div class="swatch__chip dark" style="background:#0B1220"></div><div class="swatch__name">Inkoust</div><div class="swatch__meta">--ink · #0B1220</div><div class="swatch__use">Nadpisy, primární CTA, rámečky, datové lišty. Kontrast 18,7 : 1.</div></div>
+          <div><div class="swatch__chip dark" style="background:#1E293B"></div><div class="swatch__name">Inkoust 2</div><div class="swatch__meta">--ink-2 · #1E293B</div><div class="swatch__use">Hover primárního tlačítka, položky navigace.</div></div>
+          <div><div class="swatch__chip" style="background:#4B5563"></div><div class="swatch__name">Text 2</div><div class="swatch__meta">--text-2 · #4B5563</div><div class="swatch__use">Odstavce, perex, popisky. 7,6 : 1.</div></div>
+          <div><div class="swatch__chip" style="background:#6B7280"></div><div class="swatch__name">Tlumený</div><div class="swatch__meta">--muted · #6B7280</div><div class="swatch__use">Metadata, osy grafů, nápovědy. 4,8 : 1.</div></div>
+          <div><div class="swatch__chip" style="background:#9CA3AF"></div><div class="swatch__name">Jemný</div><div class="swatch__meta">--subtle · #9CA3AF</div><div class="swatch__use">Placeholdery, čárkované okraje. Nikdy pro text s informací.</div></div>
+          <div><div class="swatch__chip" style="background:#D1D5DB"></div><div class="swatch__name">Linka silná</div><div class="swatch__meta">--line-strong · #D1D5DB</div><div class="swatch__use">Okraje formulářových polí, rám A4 náhledu.</div></div>
+          <div><div class="swatch__chip" style="background:#E5E7EB"></div><div class="swatch__name">Linka</div><div class="swatch__meta">--line · #E5E7EB</div><div class="swatch__use">Dělicí linky řádků, stopy měřidel.</div></div>
+          <div><div class="swatch__chip" style="background:#F3F4F6"></div><div class="swatch__name">Výplň</div><div class="swatch__meta">--fill · #F3F4F6</div><div class="swatch__use">Podklad štítku „Zaplaceno“, hover, předvyplněná pole.</div></div>
+          <div><div class="swatch__chip" style="background:#F8F9FA"></div><div class="swatch__name">Plátno</div><div class="swatch__meta">--canvas · #F8F9FA</div><div class="swatch__use">Pozadí aplikace.</div></div>
+          <div><div class="swatch__chip" style="background:#FFFFFF"></div><div class="swatch__name">Povrch</div><div class="swatch__meta">--surface · #FFFFFF</div><div class="swatch__use">Tabulky, pole, horní lišta, papír A4.</div></div>
+        </div>
+        <h3 class="subhead">Sémantické akcenty</h3>
+        <div class="swatches">
+          <div><div class="swatch__chip" style="background:#B91C1C"></div><div class="swatch__name">Karmín</div><div class="swatch__meta">--danger · #B91C1C</div><div class="swatch__use">Po splatnosti, chyby validace. 6,5 : 1.</div></div>
+          <div><div class="swatch__chip dark" style="background:#0B1220;position:relative"><span style="position:absolute;left:16px;top:16px;width:12px;height:12px;background:#F87171"></span></div><div class="swatch__name">Karmín na inkoustu</div><div class="swatch__meta">--danger-on-ink · #F87171</div><div class="swatch__use">Jen značka uvnitř tmavého štítku.</div></div>
+          <div><div class="swatch__chip" style="background:#15803D"></div><div class="swatch__name">Zelená</div><div class="swatch__meta">--success · #15803D</div><div class="swatch__use">Značka „Zaplaceno“, „Ověřeno v ARES“. 5,0 : 1.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 Typografie -->
+    <div class="ds-sec">
+      <div class="ds-sec__intro"><span class="ds-no">02</span><h2 class="display h2">Typografie</h2><p>Archivo v zúženém řezu pro nadpisy a velká čísla, Inter pro rozhraní. Všechny částky, data, IČO, DIČ a symboly používají <code>tabular-nums</code>.</p></div>
+      <div>
+        <div class="typerow"><div class="typerow__meta"><b>Display XL</b>Archivo 86 % · 800<br>82/1.06 · −0.035em</div><div class="display" style="font-size:clamp(40px,4.6vw,72px);line-height:1.06;letter-spacing:-0.035em">Faktura za minutu.</div></div>
+        <div class="typerow"><div class="typerow__meta"><b>Display L</b>Archivo 86 % · 800<br>60/1.08 · −0.03em</div><div class="display" style="font-size:clamp(34px,3.6vw,56px)">Nová faktura</div></div>
+        <div class="typerow"><div class="typerow__meta"><b>Nadpis 2</b>Archivo 86 % · 800<br>46/1.1 · −0.03em</div><div class="display h2">Fakturace po měsících</div></div>
+        <div class="typerow"><div class="typerow__meta"><b>Nadpis 3</b>Archivo 86 % · 700<br>22–24/1.2 · −0.02em</div><div class="display h3">Poslední faktury</div></div>
+        <div class="typerow"><div class="typerow__meta"><b>Perex</b>Inter · 400<br>20/1.62 · #4B5563</div><div class="lead">Vystavte daňový doklad, pošlete ho s QR Platbou a sledujte, kdo zaplatil.</div></div>
+        <div class="typerow"><div class="typerow__meta"><b>Text</b>Inter · 400<br>15/1.55</div><div>Odběratele načtete z ARES podle IČO. Údaje o plátcovství DPH se ověří automaticky.</div></div>
+        <div class="typerow"><div class="typerow__meta"><b>Popisek</b>Inter · 600 / 400<br>13.5 · 13/1.5</div><div><span style="font-weight:600;font-size:13.5px">Datum zdanitelného plnění</span><br><span class="hint">Nejpozději 15 dní od uskutečnění plnění.</span></div></div>
+        <div class="typerow"><div class="typerow__meta"><b>Čísla</b>tabular-nums<br>vs. proporční</div>
+          <div style="display:grid;grid-template-columns:auto auto;gap:4px 48px;justify-content:start;text-align:right;font-size:18px;font-weight:600">
+            <span class="num">1 111 111,00 Kč</span><span style="font-variant-numeric:proportional-nums">1 111 111,00 Kč</span>
+            <span class="num">48 279,00 Kč</span><span style="font-variant-numeric:proportional-nums">48 279,00 Kč</span>
+            <span class="small muted" style="font-weight:400">tabulkové — sloupce sedí</span><span class="small muted" style="font-weight:400">proporční — nepoužívat</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 Mřížka, rozestupy, geometrie -->
+    <div class="ds-sec">
+      <div class="ds-sec__intro"><span class="ds-no">03</span><h2 class="display h2">Mřížka a geometrie</h2><p>12 sloupců, obsah max. 1 280 px, okraje 48 / 24 / 16 px. Rozestupy na základu 4 px. Rohy ostré, nejvýš 4 px. Žádné stíny — hierarchii dělají linky.</p></div>
+      <div>
+        <h3 class="subhead">Rozestupy</h3>
+        <div class="spacing">
+          <div class="spacing__row"><span>--s-1 · 4</span><i style="width:4px"></i></div>
+          <div class="spacing__row"><span>--s-2 · 8</span><i style="width:8px"></i></div>
+          <div class="spacing__row"><span>--s-3 · 12</span><i style="width:12px"></i></div>
+          <div class="spacing__row"><span>--s-4 · 16</span><i style="width:16px"></i></div>
+          <div class="spacing__row"><span>--s-5 · 24</span><i style="width:24px"></i></div>
+          <div class="spacing__row"><span>--s-6 · 32</span><i style="width:32px"></i></div>
+          <div class="spacing__row"><span>--s-7 · 48</span><i style="width:48px"></i></div>
+          <div class="spacing__row"><span>--s-8 · 64</span><i style="width:64px"></i></div>
+          <div class="spacing__row"><span>--s-9 · 96</span><i style="width:96px"></i></div>
+        </div>
+        <h3 class="subhead">Zaoblení</h3>
+        <div class="geo">
+          <div><div class="geo__box" style="border-radius:0"></div><div class="geo__lbl">0 px<span>tabulky, A4, měřidla</span></div></div>
+          <div><div class="geo__box" style="border-radius:2px"></div><div class="geo__lbl">2 px · --r-1<span>štítky, značky</span></div></div>
+          <div><div class="geo__box" style="border-radius:3px"></div><div class="geo__lbl">3 px · --r-2<span>tlačítka, pole</span></div></div>
+          <div><div class="geo__box" style="border-radius:4px"></div><div class="geo__lbl">4 px · --r-3<span>maximum: menu, toast</span></div></div>
+        </div>
+        <h3 class="subhead">Linky</h3>
+        <div class="geo">
+          <div><div class="line-demo"><i style="border-top:1px solid #E5E7EB"></i></div><div class="geo__lbl">Vlasová 1 px<span>#E5E7EB · řádky</span></div></div>
+          <div><div class="line-demo"><i style="border-top:1px solid #0B1220"></i></div><div class="geo__lbl">Rám 1 px<span>#0B1220 · tabulky</span></div></div>
+          <div><div class="line-demo"><i style="border-top:1.5px solid #0B1220"></i></div><div class="geo__lbl">Předěl 1,5 px<span>sekce, hlavičky</span></div></div>
+          <div><div class="line-demo"><i style="height:44px;width:2px;background:#0B1220"></i></div><div class="geo__lbl">Svislá 2 px<span>poznámky, callouty</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 Tlačítka -->
+    <div class="ds-sec">
+      <div class="ds-sec__intro"><span class="ds-no">04</span><h2 class="display h2">Tlačítka a odkazy</h2><p>Na obrazovce je jedna plná inkoustová akce. Druhá v pořadí je podtržený odkaz nebo obrysové tlačítko. Destruktivní akce jsou textové a vždy s potvrzením.</p></div>
+      <div>
+        <div class="demo-row">
+          <div><button class="btn btn--primary btn--lg">Vystavit fakturu</button><div class="demo-cap">primary · lg 58</div></div>
+          <div><button class="btn btn--primary">+ Nová faktura</button><div class="demo-cap">primary · 44</div></div>
+          <div><button class="btn btn--outline">Načíst z ARES</button><div class="demo-cap">outline · 44</div></div>
+          <div><button class="btn btn--outline btn--sm">Upomenout</button><div class="demo-cap">outline · sm 34</div></div>
+        </div>
+        <div class="demo-row" style="margin-top:28px">
+          <div><button class="link" style="font-size:17px">Odhad DPH za měsíc</button><div class="demo-cap">link · underline 4px offset</div></div>
+          <div><button class="link link--quiet">Export pro účetní</button><div class="demo-cap">link quiet</div></div>
+          <div><button class="link link--danger">Stornovat doklad</button><div class="demo-cap">link danger</div></div>
+          <div><button class="btn btn--primary" disabled>Odeslat</button><div class="demo-cap">disabled</div></div>
+          <div><button class="btn btn--outline is-loading">Načítám</button><div class="demo-cap">loading</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 Štítky -->
+    <div class="ds-sec">
+      <div class="ds-sec__intro"><span class="ds-no">05</span><h2 class="display h2">Štítky stavu</h2><p>Naléhavost vyjadřuje váha inkoustu, ne barva. Plný inkoust = vyžaduje akci, obrys = běží, šedý podklad = vyřízeno. Barevná značka je jen 6 × 6 px.</p></div>
+      <div>
+        <div class="tablewrap">
+          <table class="table badge-table" style="min-width:0">
+            <thead><tr><th>Štítek</th><th>Význam a použití</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge badge--overdue">Po splatnosti</span></td><td>Uplynula splatnost a faktura není uhrazená. Jediný plný štítek — vyžaduje akci.</td></tr>
+              <tr><td><span class="badge badge--sent">Čeká na úhradu</span></td><td>Vystaveno a odesláno, splatnost běží.</td></tr>
+              <tr><td><span class="badge badge--paid">Zaplaceno</span></td><td>Platba spárována s výpisem nebo označena ručně.</td></tr>
+              <tr><td><span class="badge badge--draft">Koncept</span></td><td>Rozpracováno, nemá přidělené číslo v řadě.</td></tr>
+              <tr><td><span class="badge badge--cancelled">Stornováno</span></td><td>Zrušeno opravným daňovým dokladem.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 Formuláře -->
+    <div class="ds-sec">
+      <div class="ds-sec__intro"><span class="ds-no">06</span><h2 class="display h2">Formulářová pole</h2><p>Výška 42 px, okraj #D1D5DB, při fokusu inkoustový rám 1 + 1 px. Popisek je vždy nad polem, nápověda pod ním. Chyba mluví konkrétně a česky.</p></div>
+      <div>
+        <div class="demo-grid">
+          <div class="field"><label>Název / jméno</label><input class="input" value="Moravská logistika s.r.o."><span class="hint">Výchozí stav</span></div>
+          <div class="field"><label>Variabilní symbol</label><input class="input num is-focus" value="20260149"><span class="hint">Fokus</span></div>
+          <div class="field"><label>IČO</label><input class="input num is-error" value="24681352"><span class="hint hint--error">IČO nemá platný kontrolní součet. Zkontrolujte poslední číslici.</span></div>
+          <div class="field"><label>DIČ</label><input class="input num" value="CZ24681351" disabled><span class="hint">Zakázané — převzato z ARES</span></div>
+          <div class="field"><label>IČO + ARES</label><div class="inputgroup"><input class="input num" value="24681351"><button class="btn btn--outline" type="button">Načíst z ARES</button></div><span class="hint hint--ok">Ověřeno v ARES · plátce DPH</span></div>
+          <div class="field"><label>Sazba DPH</label><select class="input"><option>21 % — základní</option><option>12 % — snížená</option><option>0 % — osvobozeno</option></select></div>
+          <div class="field"><span class="flabel">Splatnost</span><div class="seg"><button type="button">7 dní</button><button type="button" aria-pressed="true">14 dní</button><button type="button">30 dní</button></div></div>
+          <div class="field"><span class="flabel">Volba</span><label class="check"><input type="checkbox" checked> Připojit QR Platbu</label><label class="check"><input type="checkbox"> Režim přenesení daňové povinnosti</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 Data -->
+    <div class="ds-sec">
+      <div class="ds-sec__intro"><span class="ds-no">07</span><h2 class="display h2">Tabulka, metrika, poznámka</h2><p>Tabulka v rámu 1 px s hlavičkou podtrženou předělem 1,5 px. Metriky mají ostré proporční měřidlo. Poznámka stojí na svislé linii 2 px.</p></div>
+      <div>
+        <div class="tablewrap">
+          <table class="table" style="min-width:520px">
+            <thead><tr><th>Číslo</th><th>Odběratel</th><th class="r">Částka</th><th>Stav</th></tr></thead>
+            <tbody>
+              <tr><td class="docno">2026-0147</td><td>Nordbyte a.s.<span class="sub">IČO 19876548</span></td><td class="r amount">30 460 Kč</td><td><span class="badge badge--sent">Čeká na úhradu</span></td></tr>
+              <tr><td class="docno">2026-0142</td><td>Kovárna Hrubý s.r.o.<span class="sub">IČO 06234178</span></td><td class="r amount">36 300 Kč</td><td><span class="badge badge--paid">Zaplaceno</span></td></tr>
+              <tr><td class="docno">2026-0131</td><td>Nordbyte a.s.<span class="sub">IČO 19876548</span></td><td class="r amount">54 450 Kč</td><td><span class="badge badge--overdue">Po splatnosti</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ds-pair">
+          <div class="ds-kpi">
+            <div class="kpi__label">Čeká na úhradu</div>
+            <div class="kpi__value">214 380<span class="cur">Kč</span></div>
+            <div class="meter"><i style="width:69%"></i></div>
+            <div class="kpi__meta">6 faktur · 69 % pohledávek</div>
+          </div>
+          <div class="callout" style="margin-top:0">Odhad DPH k odvodu: 59 460 Kč.<small>Podklad, ne daňové přiznání. Přesnou částku spočítá modul DPH &amp; Reporty.</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="container"><span>Manymy — grafický návrh v0.1 · listopad 2026 · ukázková data</span><span>Data a IČO jsou smyšlená · ARES je v ukázce simulovaný</span></div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- helpers ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const NB = ' ';
+const fmt0 = new Intl.NumberFormat('cs-CZ', { maximumFractionDigits:0 });
+const fmt2 = new Intl.NumberFormat('cs-CZ', { minimumFractionDigits:2, maximumFractionDigits:2 });
+const fmt1 = new Intl.NumberFormat('cs-CZ', { minimumFractionDigits:1, maximumFractionDigits:1 });
+const kc  = n => fmt0.format(Math.round(n)) + NB + 'Kč';
+const kc2 = n => fmt2.format(n) + NB + 'Kč';
+const pct = r => Math.round(r * 100) + NB + '%';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pd = s => { if(!s) return null; const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const iso = dt => dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+const fd = dt => dt ? dt.getDate() + '.' + NB + (dt.getMonth()+1) + '.' + NB + dt.getFullYear() : '—';
+const fdShort = dt => dt.getDate() + '.' + NB + (dt.getMonth()+1) + '.';
+const addDays = (dt, n) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + n);
+const diffDays = (a, b) => Math.round((b - a) / 86400000);
+const plural = (n, f) => n === 1 ? f[0] : (n >= 2 && n <= 4 ? f[1] : f[2]);
+const DNY = ['den','dny','dní'];
+const FAKTURY = ['faktura','faktury','faktur'];
+const parseNum = s => { const v = parseFloat(String(s).replace(/\s| /g,'').replace(',','.')); return isFinite(v) ? v : 0; };
+const round2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+const TODAY = new Date(2026, 10, 24);
+
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('is-on');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('is-on'), 3200);
+}
+
+/* IČO: kontrolní součet modulo 11 */
+function icoValid(ico){
+  if(!/^\d{8}$/.test(ico)) return false;
+  let s = 0; for(let i=0;i<7;i++) s += Number(ico[i]) * (8 - i);
+  const m = s % 11; const c = m === 0 ? 1 : m === 1 ? 0 : 11 - m;
+  return c === Number(ico[7]);
+}
+/* IBAN z českého čísla účtu (předčíslí-číslo/kód banky) */
+function czIban(acc){
+  const m = String(acc).match(/^(?:(\d{1,6})-)?(\d{2,10})\/(\d{4})$/);
+  if(!m) return '';
+  const bban = m[3] + (m[1]||'').padStart(6,'0') + m[2].padStart(10,'0');
+  const rem = BigInt(bban + '123500') % 97n;
+  return 'CZ' + String(98n - rem).padStart(2,'0') + bban;
+}
+const ibanFmt = s => s.replace(/(.{4})/g,'$1 ').trim();
+
+/* ---------- data ---------- */
+const SUPPLIER = { name:'Studio Lipa s.r.o.', street:'Vinohradská 1234/56', city:'Praha 2', zip:'120 00', ico:'08765430', dic:'CZ08765430', email:'fakturace@studiolipa.cz', phone:'+420 222 310 455', reg:'Společnost je zapsána v obchodním rejstříku vedeném Městským soudem v Praze, oddíl C, vložka 318422.' };
+const ACCOUNTS = {
+  '2801234567/2010': { label:'Fio banka', swift:'FIOBCZPPXXX' },
+  '123456789/0800':  { label:'Česká spořitelna', swift:'GIBACZPX' }
+};
+const CLIENTS = {
+  '19876548': { name:'Nordbyte a.s.', dic:'CZ19876548', street:'Karolinská 654/2', city:'Praha 8', zip:'186 00', email:'fakturace@nordbyte.cz', vat:true },
+  '07318260': { name:'Pekárna U Mlýna s.r.o.', dic:'CZ07318260', street:'Mlýnská 112', city:'Kutná Hora', zip:'284 01', email:'ucetni@pekarnaumlyna.cz', vat:true },
+  '05213479': { name:'Atelier Brázda', dic:'', street:'Na Výsluní 7', city:'České Budějovice', zip:'370 01', email:'jana@atelierbrazda.cz', vat:false },
+  '24681351': { name:'Moravská logistika s.r.o.', dic:'CZ24681351', street:'Křenová 412/18', city:'Brno', zip:'602 00', email:'faktury@moravskalogistika.cz', vat:true },
+  '27190536': { name:'Vinařství Horák & syn s.r.o.', dic:'CZ27190536', street:'Sklepní 3', city:'Velké Pavlovice', zip:'691 06', email:'', vat:true },
+  '06234178': { name:'Kovárna Hrubý s.r.o.', dic:'CZ06234178', street:'Průmyslová 1520', city:'Hradec Králové', zip:'500 02', email:'kancelar@kovarnahruby.cz', vat:true },
+  '28639049': { name:'Dvořák Consulting s.r.o.', dic:'CZ28639049', street:'Údolní 33', city:'Olomouc', zip:'779 00', email:'', vat:true },
+  '09451277': { name:'Studio Kalich s.r.o.', dic:'CZ09451277', street:'Jungmannova 28/17', city:'Praha 1', zip:'110 00', email:'hello@studiokalich.cz', vat:true }
+};
+const INVOICES = [
+  ['2026-0148','07318260','2026-11-24',null,        9680,'draft'],
+  ['2026-0147','19876548','2026-11-22','2026-12-06',30460,'sent'],
+  ['2026-0146','09451277','2026-11-21','2026-12-05',21780,'sent'],
+  ['2026-0145','28639049','2026-11-19','2026-12-03',45980,'sent'],
+  ['2026-0144','06234178','2026-11-18','2026-12-02',12100,'sent'],
+  ['2026-0143','27190536','2026-11-17','2026-12-01',31460,'sent'],
+  ['2026-0142','06234178','2026-11-15','2026-11-29',36300,'paid','2026-11-20'],
+  ['2026-0141','24681351','2026-11-14','2026-11-28',72600,'sent'],
+  ['2026-0140','24681351','2026-11-10','2026-11-24',96800,'paid','2026-11-23'],
+  ['2026-0139','05213479','2026-11-06','2026-11-20',25260,'sent'],
+  ['2026-0138','27190536','2026-11-04','2026-11-18',14520,'paid','2026-11-17'],
+  ['2026-0137','07318260','2026-11-02','2026-11-16',18150,'sent'],
+  ['2026-0136','28639049','2026-11-01','2026-11-15',60500,'paid','2026-11-12'],
+  ['2026-0135','09451277','2026-10-30','2026-11-13', 8470,'paid','2026-11-10'],
+  ['2026-0134','05213479','2026-10-28','2026-11-11',12000,'paid','2026-11-11'],
+  ['2026-0133','19876548','2026-10-27','2026-11-10',121000,'paid','2026-11-06'],
+  ['2026-0132','24681351','2026-10-24','2026-11-07',24200,'cancelled'],
+  ['2026-0131','19876548','2026-10-23','2026-11-06',54450,'sent']
+].map(r => ({ no:r[0], ico:r[1], issued:r[2], due:r[3], amount:r[4], state:r[5], paid:r[6]||null }));
+
+const MONTH_NAMES = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+const MONTH_SHORT = ['Led','Úno','Bře','Dub','Kvě','Čvn','Čvc','Srp','Zář','Říj','Lis','Pro'];
+const MONTHS_BASE = [312400,286900,401250,356800,389100,342600,298300,264900,418700,512400,null,null];
+const MONTH_COUNTS = [11,10,14,12,13,12,10,9,14,16,null,null];
+const YEAR_PLAN = 4500000;
+const INPUT_VAT = 21400; // DPH na vstupu z Nákladů (ukázka)
+
+const clientOf = inv => CLIENTS[inv.ico] || { name: inv.name || '—', email:'' };
+const statusOf = inv => (inv.state === 'sent' && pd(inv.due) < TODAY) ? 'overdue' : inv.state;
+const STATUS = {
+  overdue:['Po splatnosti','badge--overdue'], sent:['Čeká na úhradu','badge--sent'], paid:['Zaplaceno','badge--paid'],
+  draft:['Koncept','badge--draft'], cancelled:['Stornováno','badge--cancelled']
+};
+const badge = st => `<span class="badge ${STATUS[st][1]}">${STATUS[st][0]}</span>`;
+
+function dueCell(inv){
+  const st = statusOf(inv);
+  if(!inv.due) return '<span class="muted">—</span>';
+  const due = pd(inv.due);
+  let sub = '';
+  if(st === 'paid') sub = `uhrazeno ${fdShort(pd(inv.paid))}`;
+  else if(st === 'cancelled') sub = 'storno';
+  else {
+    const n = diffDays(TODAY, due);
+    if(n > 0) sub = `za ${n}${NB}${plural(n,DNY)}`;
+    else if(n === 0) sub = 'splatné dnes';
+    else { const k = -n; sub = `<span class="due-late">${k}${NB}${plural(k,DNY)} po splatnosti</span>`; }
+  }
+  return `<span class="num">${fd(due)}</span><span class="sub">${sub}</span>`;
+}
+
+/* ---------- aggregates ---------- */
+function stats(){
+  const nov = INVOICES.filter(i => i.issued.startsWith('2026-11') && i.state !== 'draft' && i.state !== 'cancelled');
+  const month = nov.reduce((s,i) => s + i.amount, 0);
+  const waiting = INVOICES.filter(i => statusOf(i) === 'sent');
+  const overdue = INVOICES.filter(i => statusOf(i) === 'overdue');
+  const sum = a => a.reduce((s,i) => s + i.amount, 0);
+  const months = MONTHS_BASE.slice(); months[10] = month;
+  const counts = MONTH_COUNTS.slice(); counts[10] = nov.length;
+  const year = months.reduce((s,v) => s + (v || 0), 0);
+  const oldest = overdue.slice().sort((a,b) => pd(a.due) - pd(b.due))[0];
+  const nearest = waiting.slice().sort((a,b) => pd(a.due) - pd(b.due))[0];
+  return { nov, month, waiting, overdue, wSum:sum(waiting), oSum:sum(overdue), months, counts, year, oldest, nearest,
+           clients: new Set(nov.map(i => i.ico)).size };
+}
+
+/* ---------- A) PŘEHLED ---------- */
+function renderOverview(){
+  const s = stats();
+  $('[data-k="month"]').textContent = kc(s.month);
+  $('[data-k="overdue"]').textContent = kc(s.oSum);
+  const oldestDays = s.oldest ? diffDays(pd(s.oldest.due), TODAY) : 0;
+  $('[data-k="lead"]').innerHTML = `Za 24 dní jste vystavili ${s.nov.length}${NB}${plural(s.nov.length,FAKTURY)} pro ${s.clients} odběratelů. ` +
+    (s.overdue.length ? `${s.overdue.length === 1 ? 'Jedna faktura čeká' : (s.overdue.length <= 4 ? ['','','Dvě','Tři','Čtyři'][s.overdue.length] + ' faktury čekají' : s.overdue.length + ' faktur čeká')} déle, než by měly — nejstarší ${oldestDays}${NB}${plural(oldestDays,DNY)} (${esc(clientOf(s.oldest).name)}).`
+                      : 'Všechny vystavené faktury jsou v termínu.');
+  $('#btn-remind-all').textContent = s.overdue.length ? `Poslat upomínky (${s.overdue.length})` : 'Žádné upomínky';
+  $('#btn-remind-all').disabled = !s.overdue.length;
+
+  const prev = s.months[9];
+  const change = (s.month - prev) / prev;
+  const recv = s.wSum + s.oSum || 1;
+  const kpis = [
+    { label:'Fakturováno tento měsíc', v:s.month, bar:Math.min(1, s.month / prev), meta:`${s.nov.length}${NB}${plural(s.nov.length,FAKTURY)} · ${change < 0 ? '−' : '+'}${fmt1.format(Math.abs(change*100))}${NB}% proti říjnu` },
+    { label:'Čeká na úhradu', v:s.wSum, bar:s.wSum / recv, meta:`${s.waiting.length}${NB}${plural(s.waiting.length,FAKTURY)}` + (s.nearest ? ` · nejbližší splatnost ${fdShort(pd(s.nearest.due))}` : '') },
+    { label:'Po splatnosti', v:s.oSum, bar:s.oSum / recv, meta:`${s.overdue.length}${NB}${plural(s.overdue.length,FAKTURY)} · ${pct(s.oSum / recv)} pohledávek`, mark:true },
+    { label:'Letos celkem', v:s.year, bar:Math.min(1, s.year / YEAR_PLAN), meta:`${pct(s.year / YEAR_PLAN)} ročního plánu ${fmt1.format(YEAR_PLAN/1e6)}${NB}mil.${NB}Kč` }
+  ];
+  $('#kpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="kpi__label">${k.mark ? '<i class="mark" aria-hidden="true"></i>' : ''}${k.label}</div>
+      <div class="kpi__value">${fmt0.format(k.v)}<span class="cur">Kč</span></div>
+      <div class="meter" role="img" aria-label="${pct(k.bar)}"><i style="width:${(k.bar*100).toFixed(1)}%"></i></div>
+      <div class="kpi__meta num">${k.meta}</div>
+    </div>`).join('');
+
+  const outVat = Math.round(s.month * 21 / 121);
+  $('[data-k="vat"]').innerHTML = `Odhad DPH k odvodu za listopad: ${kc(outVat - INPUT_VAT)}.` +
+    `<small>Na výstupu ${kc(outVat)}, odpočet z přijatých faktur ${kc(INPUT_VAT)}. Přiznání a kontrolní hlášení podejte do 28.${NB}12.${NB}2026 (25. 12. připadá na svátek).</small>`;
+
+  const recent = INVOICES.slice(0, 6);
+  $('#recent-table tbody').innerHTML = recent.map(inv => {
+    const c = clientOf(inv);
+    return `<tr><td class="docno">${inv.no}</td><td>${esc(c.name)}<span class="sub">IČO ${inv.ico || '—'}</span></td>
+      <td class="num">${fd(pd(inv.issued))}</td><td>${dueCell(inv)}</td><td class="r amount">${kc(inv.amount)}</td><td>${badge(statusOf(inv))}</td></tr>`;
+  }).join('');
+  renderChart();
+}
+
+let chartHover = null;
+function renderChart(){
+  const host = $('#chart'); if(!host || !host.clientWidth) return;
+  const s = stats();
+  const W = host.clientWidth, H = 260, padL = 58, padR = 6, padT = 26, padB = 30;
+  const iw = W - padL - padR, ih = H - padT - padB, max = 600000, n = 12;
+  const band = iw / n, bw = Math.max(10, Math.min(38, band * 0.58));
+  const y = v => padT + ih - (v / max) * ih;
+  const vals = s.months.filter(v => v != null);
+  const avg = vals.reduce((a,b) => a + b, 0) / vals.length;
+  const active = chartHover == null ? 10 : chartHover;
+  let o = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Sloupcový graf fakturace po měsících roku 2026">`;
+  [200000,400000,600000].forEach(v => {
+    o += `<line x1="${padL}" x2="${W-padR}" y1="${y(v)}" y2="${y(v)}" stroke="#E5E7EB" stroke-width="1" shape-rendering="crispEdges"/>`;
+    o += `<text x="${padL-12}" y="${y(v)+4}" text-anchor="end">${v/1000}${NB}tis.</text>`;
+  });
+  o += `<text x="${padL-12}" y="${y(0)+4}" text-anchor="end">0</text>`;
+  s.months.forEach((v,i) => {
+    const x = padL + band*i + (band - bw)/2;
+    const cls = i === active ? 'm-cur' : '';
+    o += `<text x="${x + bw/2}" y="${H-8}" text-anchor="middle" class="${cls}">${MONTH_SHORT[i]}</text>`;
+    if(v == null){
+      o += `<rect x="${x+.75}" y="${y(avg)}" width="${bw-1.5}" height="${y(0)-y(avg)}" fill="none" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3 3" shape-rendering="crispEdges"/>`;
+      return;
+    }
+    const fill = (chartHover == null || i === chartHover) ? '#0B1220' : '#D1D5DB';
+    o += `<rect class="bar" x="${x}" y="${y(v)}" width="${bw}" height="${y(0)-y(v)}" fill="${fill}" shape-rendering="crispEdges"/>`;
+    if(i === active) o += `<text class="lbl" x="${x + bw/2}" y="${y(v)-8}" text-anchor="middle">${fmt0.format(Math.round(v/1000))}${NB}tis.</text>`;
+    o += `<rect data-i="${i}" x="${padL + band*i}" y="${padT}" width="${band}" height="${ih}" fill="transparent" style="cursor:default"/>`;
+  });
+  o += `<line x1="${padL}" x2="${W-padR}" y1="${y(avg)}" y2="${y(avg)}" stroke="#0B1220" stroke-width="1" stroke-dasharray="4 4" shape-rendering="crispEdges"/>`;
+  o += `<line x1="${padL}" x2="${W-padR}" y1="${y(0)}" y2="${y(0)}" stroke="#0B1220" stroke-width="1.5"/>`;
+  o += `</svg>`;
+  host.innerHTML = o;
+  const v = s.months[active];
+  $('#chart-label').textContent = active === 10 ? `Listopad 2026 · zatím, ${s.counts[10]}${NB}${plural(s.counts[10],FAKTURY)}` : `${MONTH_NAMES[active]} 2026 · ${s.counts[active]}${NB}${plural(s.counts[active],FAKTURY)}`;
+  $('#chart-val').textContent = kc(v);
+  $$('rect[data-i]', host).forEach(r => {
+    r.addEventListener('mouseenter', () => { const i = Number(r.dataset.i); if(chartHover === i) return; chartHover = i; renderChart(); });
+  });
+  host.onmouseleave = () => { if(chartHover != null){ chartHover = null; renderChart(); } };
+}
+
+/* ---------- B) FAKTURY ---------- */
+const FILTERS = [['all','Vše'],['draft','Koncepty'],['sent','Čeká na úhradu'],['overdue','Po splatnosti'],['paid','Zaplacené'],['cancelled','Stornované']];
+let filter = 'all', query = '', sort = { key:'no', dir:-1 };
+
+function renderInvoices(){
+  const counts = { all:INVOICES.length };
+  INVOICES.forEach(i => { const s = statusOf(i); counts[s] = (counts[s]||0) + 1; });
+  $('#tabs').innerHTML = FILTERS.map(([k,l]) => `<button type="button" class="tab" data-f="${k}" aria-pressed="${filter===k}">${l}<span class="cnt">${counts[k]||0}</span></button>`).join('');
+
+  const q = query.trim().toLowerCase().replace(/\s/g,'');
+  let rows = INVOICES.filter(i => filter === 'all' || statusOf(i) === filter);
+  if(q) rows = rows.filter(i => (i.no + clientOf(i).name + i.ico + i.amount).toLowerCase().replace(/\s/g,'').includes(q));
+  const key = sort.key;
+  rows.sort((a,b) => {
+    let va, vb;
+    if(key === 'amount'){ va = a.amount; vb = b.amount; }
+    else if(key === 'no'){ va = a.no; vb = b.no; }
+    else { va = a[key] || '9999'; vb = b[key] || '9999'; }
+    return (va > vb ? 1 : va < vb ? -1 : 0) * sort.dir;
+  });
+  $$('.th-sort').forEach(b => {
+    const on = b.dataset.sort === key;
+    if(on) b.setAttribute('aria-sort', sort.dir > 0 ? 'ascending' : 'descending'); else b.removeAttribute('aria-sort');
+    $('.arr', b).textContent = on ? (sort.dir > 0 ? '↑' : '↓') : '↕';
+  });
+
+  const live = rows.filter(i => i.state !== 'cancelled' && i.state !== 'draft');
+  const unpaid = rows.filter(i => ['sent','overdue'].includes(statusOf(i)));
+  const late = rows.filter(i => statusOf(i) === 'overdue');
+  const sum = a => a.reduce((s,i) => s + i.amount, 0);
+  $('#summary').innerHTML = `<span>Zobrazeno <b>${rows.length}</b> ${plural(rows.length,['doklad','doklady','dokladů'])}</span>
+    <span>Vystaveno <b>${kc(sum(live))}</b></span><span>Neuhrazeno <b>${kc(sum(unpaid))}</b></span>
+    <span class="late">Po splatnosti <b>${kc(sum(late))}</b></span>`;
+
+  const tb = $('#inv-table tbody');
+  if(!rows.length){
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty"><strong>Nic jsme nenašli</strong>Pro „${esc(query)}“ v tomto filtru není žádný doklad. <button class="link" type="button" data-act="clear">Zrušit hledání</button></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map(inv => {
+    const c = clientOf(inv), st = statusOf(inv);
+    let act = '';
+    if(st === 'overdue') act = `<button class="link" type="button" data-act="remind" data-no="${inv.no}">Upomenout</button>`;
+    else if(st === 'sent') act = `<button class="link link--quiet" type="button" data-act="paid" data-no="${inv.no}">Označit zaplacené</button>`;
+    else if(st === 'draft') act = `<a class="link" href="#nova">Dokončit</a>`;
+    if(st !== 'draft' && st !== 'cancelled') act += `<button class="link link--quiet" type="button" data-act="pdf" data-no="${inv.no}">PDF</button>`;
+    return `<tr>
+      <td class="docno">${inv.no}</td>
+      <td>${esc(c.name)}<span class="sub">IČO ${inv.ico || '—'}</span></td>
+      <td class="num">${fd(pd(inv.issued))}</td>
+      <td>${dueCell(inv)}</td>
+      <td class="r amount">${kc(inv.amount)}</td>
+      <td>${badge(st)}</td>
+      <td class="r"><div class="rowacts">${act}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(!b) return; filter = b.dataset.f; renderInvoices(); });
+$('#search').addEventListener('input', e => { query = e.target.value; renderInvoices(); });
+$$('.th-sort').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.sort; sort = { key:k, dir: sort.key === k ? -sort.dir : (k === 'no' || k === 'amount' ? -1 : 1) }; renderInvoices();
+}));
+$('#inv-table').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const inv = INVOICES.find(i => i.no === b.dataset.no);
+  if(b.dataset.act === 'clear'){ query = ''; $('#search').value = ''; renderInvoices(); return; }
+  if(b.dataset.act === 'remind'){ const c = clientOf(inv); toast(`Upomínka k faktuře ${inv.no} odeslána${c.email ? ' na ' + c.email : ' odběrateli'}.`); }
+  if(b.dataset.act === 'paid'){ inv.state = 'paid'; inv.paid = iso(TODAY); toast(`Faktura ${inv.no} označena jako zaplacená ${fd(TODAY)}.`); renderAll(); }
+  if(b.dataset.act === 'pdf'){ toast(`PDF faktury ${inv.no} se připravuje ke stažení.`); }
+});
+$('#btn-export').addEventListener('click', () => toast('Export ISDOC + CSV za listopad 2026 připraven pro účetní.'));
+$('#btn-remind-all').addEventListener('click', () => {
+  const n = stats().overdue.length; if(!n) return;
+  toast(`${['','Odeslána','Odeslány','Odeslány','Odeslány'][n] || 'Odesláno'} ${n}${NB}${plural(n,['upomínka','upomínky','upomínek'])} odběratelům po splatnosti.`);
+});
+document.addEventListener('keydown', e => {
+  if(e.key === '/' && location.hash === '#faktury' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){ e.preventDefault(); $('#search').focus(); }
+});
+
+/* ---------- C) EDITOR ---------- */
+let uid = 0;
+const newItem = (desc='', qty=1, unit='ks', price=0, vat=21) => ({ id:++uid, desc, qty, unit, price, vat });
+let inv;
+function freshInvoice(number){
+  return {
+    number, issued:iso(TODAY), duzp:iso(TODAY), dueDays:14,
+    account:'2801234567/2010', vs:number.replace(/\D/g,''), vsManual:false, ks:'0308', method:'Bankovním převodem', qr:true,
+    note:'Fakturujeme Vám za služby dle objednávky č. OBJ-2026-118 ze dne 3. 11. 2026.',
+    customer:{ ico:'', name:'', dic:'', street:'', city:'', zip:'', email:'' }, aresOk:false,
+    items:[ newItem('Návrh UI/UX — modul fakturace', 32, 'hod', 1450, 21),
+            newItem('Workshop s týmem zákazníka', 1, 'ks', 8000, 21),
+            newItem('Občerstvení na workshop', 1, 'ks', 2400, 12) ]
+  };
+}
+const nextNumber = () => { const max = INVOICES.reduce((m,i) => Math.max(m, Number(i.no.slice(5)) || 0), 0); return '2026-' + String(max + 1).padStart(4,'0'); };
+
+function totals(){
+  const groups = {};
+  inv.items.forEach(it => {
+    const base = round2(parseNum(it.qty) * parseNum(it.price));
+    groups[it.vat] = (groups[it.vat] || 0) + base;
+  });
+  const rates = Object.keys(groups).map(Number).sort((a,b) => b - a);
+  const rows = rates.map(r => { const base = round2(groups[r]); const vat = round2(base * r / 100); return { rate:r, base, vat, total:round2(base + vat) }; });
+  const sum = round2(rows.reduce((s,r) => s + r.total, 0));
+  const grand = Math.round(sum);
+  return { rows, base:round2(rows.reduce((s,r) => s + r.base, 0)), vat:round2(rows.reduce((s,r) => s + r.vat, 0)), sum, grand, rounding:round2(grand - sum) };
+}
+
+function renderItems(focusId){
+  $('#items').innerHTML = inv.items.map(it => `
+    <div class="item ${it.id === focusId ? 'is-new' : ''}" data-id="${it.id}">
+      <input class="input item__desc" data-f="desc" value="${esc(it.desc)}" placeholder="Popis položky" aria-label="Popis položky">
+      <input class="input num" data-f="qty" value="${esc(String(it.qty).replace('.',','))}" inputmode="decimal" aria-label="Množství">
+      <input class="input" data-f="unit" value="${esc(it.unit)}" aria-label="Měrná jednotka">
+      <input class="input num" data-f="price" value="${esc(String(it.price).replace('.',','))}" inputmode="decimal" aria-label="Cena za jednotku bez DPH">
+      <select class="input" data-f="vat" aria-label="Sazba DPH">${[21,12,0].map(r => `<option value="${r}" ${r === it.vat ? 'selected' : ''}>${r}${NB}%</option>`).join('')}</select>
+      <output class="item__sum">${kc2(parseNum(it.qty) * parseNum(it.price))}</output>
+      <button type="button" class="item__del" data-del="${it.id}" aria-label="Odebrat položku" title="Odebrat položku">×</button>
+    </div>`).join('');
+  if(focusId){ const el = $(`.item[data-id="${focusId}"] .item__desc`); if(el) el.focus(); }
+}
+
+function renderTotals(){
+  const t = totals();
+  let h = '';
+  t.rows.forEach(r => {
+    h += `<div class="totals__row"><span>Základ ${r.rate}${NB}%</span><span>${kc2(r.base)}</span></div>`;
+    if(r.rate) h += `<div class="totals__row"><span>DPH ${r.rate}${NB}%</span><span>${kc2(r.vat)}</span></div>`;
+  });
+  if(t.rounding) h += `<div class="totals__row"><span>Zaokrouhlení</span><span>${kc2(t.rounding)}</span></div>`;
+  h += `<div class="totals__grand"><span class="k">Celkem k úhradě</span><span class="v">${kc(t.grand)}</span></div>`;
+  $('#totals').innerHTML = h;
+}
+
+/* stylizovaný QR kód (v produkci skutečný enkodér, ECC M) */
+function qrSvg(text){
+  const N = 29, Q = 2;
+  const m = Array.from({length:N}, () => Array(N).fill(0));
+  const res = Array.from({length:N}, () => Array(N).fill(false));
+  const finder = (r0, c0) => {
+    for(let i=-1;i<=7;i++) for(let j=-1;j<=7;j++){
+      const r = r0+i, c = c0+j; if(r<0||c<0||r>=N||c>=N) continue;
+      res[r][c] = true;
+      const inside = i>=0 && i<=6 && j>=0 && j<=6;
+      m[r][c] = inside && (i===0||i===6||j===0||j===6||(i>=2&&i<=4&&j>=2&&j<=4)) ? 1 : 0;
+    }
+  };
+  finder(0,0); finder(0,N-7); finder(N-7,0);
+  for(let i=8;i<N-8;i++){ m[6][i] = m[i][6] = (i % 2 === 0) ? 1 : 0; res[6][i] = res[i][6] = true; }
+  for(let i=-2;i<=2;i++) for(let j=-2;j<=2;j++){ const r = 22+i, c = 22+j; res[r][c] = true; m[r][c] = Math.max(Math.abs(i),Math.abs(j)) === 1 ? 0 : 1; }
+  m[N-8][8] = 1; res[N-8][8] = true;
+  let h = 2166136261; for(const ch of text){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  let s = (h >>> 0) || 1;
+  const rnd = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!res[r][c]) m[r][c] = rnd() < 0.5 ? 1 : 0;
+  let d = '';
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(m[r][c]) d += `M${c+Q} ${r+Q}h1v1h-1z`;
+  const S = N + Q*2;
+  return `<svg viewBox="0 0 ${S} ${S}" shape-rendering="crispEdges" role="img" aria-label="QR Platba"><rect width="${S}" height="${S}" fill="#fff"/><path d="${d}" fill="#0B1220"/></svg>`;
+}
+
+function spaydString(t, due){
+  const iban = czIban(inv.account);
+  const msg = ('Faktura ' + inv.number).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+  return `SPD*1.0*ACC:${iban}*AM:${t.grand.toFixed(2)}*CC:CZK*DT:${iso(due).replace(/-/g,'')}` + (inv.vs ? `*X-VS:${inv.vs}` : '') + (inv.ks ? `*X-KS:${inv.ks}` : '') + `*MSG:${msg}`;
+}
+
+function renderPreview(){
+  const t = totals(), c = inv.customer;
+  const issued = pd(inv.issued) || TODAY, duzp = pd(inv.duzp) || issued, due = addDays(issued, inv.dueDays);
+  const iban = czIban(inv.account), acc = ACCOUNTS[inv.account] || {};
+  const spayd = spaydString(t, due);
+  $('#due-date').textContent = fd(due);
+  $('#iban-out').textContent = ibanFmt(iban);
+  $('#spayd').textContent = spayd;
+  $$('[data-bind="number"]').forEach(el => el.textContent = inv.number);
+  const logo = `<svg viewBox="0 0 22 28" aria-hidden="true"><path d="M0 0H15L22 7V28H0Z" fill="#0B1220"/><path d="M15 0V7H22" fill="#fff"/><rect x="5" y="15" width="12" height="2" fill="#fff"/><rect x="5" y="20" width="7" height="2" fill="#fff"/></svg>`;
+  const customer = c.name ? `
+      <div class="a4-name">${esc(c.name)}</div>
+      <div>${esc(c.street)}</div><div class="num">${esc(c.zip)} ${esc(c.city)}</div>
+      <dl class="a4-ids num"><dt>IČO</dt><dd>${esc(c.ico) || '—'}</dd><dt>DIČ</dt><dd>${esc(c.dic) || 'není plátce DPH'}</dd></dl>`
+    : `<div class="a4-placeholder">Odběratel zatím není vyplněn.<br>Zadejte IČO a načtěte údaje z ARES.</div>`;
+  const items = inv.items.map(it => {
+    const q = parseNum(it.qty), p = parseNum(it.price);
+    return `<tr><td>${esc(it.desc) || '<span style="color:#9CA3AF">Bez popisu</span>'}</td><td class="r num">${fmt2.format(q).replace(/,00$/,'')}${NB}${esc(it.unit)}</td><td class="r num">${fmt2.format(p)}</td><td class="r num">${it.vat}${NB}%</td><td class="r num">${fmt2.format(round2(q*p))}</td></tr>`;
+  }).join('');
+  const recap = t.rows.map(r => `<tr><td>${r.rate}${NB}%</td><td class="num">${fmt2.format(r.base)}</td><td class="num">${fmt2.format(r.vat)}</td><td class="num">${fmt2.format(r.total)}</td></tr>`).join('');
+
+  $('#a4').innerHTML = `
+    <div class="a4-top">
+      <div class="a4-brand">${logo}<span>${SUPPLIER.name}</span></div>
+      <div class="a4-doc"><div class="a4-kicker">Faktura — daňový doklad</div><div class="a4-no num">${esc(inv.number)}</div></div>
+    </div>
+    <div class="a4-rule"></div>
+    <div class="a4-parties">
+      <div>
+        <div class="a4-label">Dodavatel</div>
+        <div class="a4-name">${SUPPLIER.name}</div>
+        <div>${SUPPLIER.street}</div><div class="num">${SUPPLIER.zip} ${SUPPLIER.city}</div>
+        <dl class="a4-ids num"><dt>IČO</dt><dd>${SUPPLIER.ico}</dd><dt>DIČ</dt><dd>${SUPPLIER.dic}</dd></dl>
+      </div>
+      <div><div class="a4-label">Odběratel</div>${customer}</div>
+    </div>
+    <div class="a4-meta num">
+      <div><span class="a4-kicker">Datum vystavení</span><b>${fd(issued)}</b></div>
+      <div><span class="a4-kicker">DUZP</span><b>${fd(duzp)}</b></div>
+      <div><span class="a4-kicker">Datum splatnosti</span><b>${fd(due)}</b></div>
+      <div><span class="a4-kicker">Forma úhrady</span><b>${({'Bankovním převodem':'Převodem','Hotově':'Hotově','Platební kartou':'Kartou'})[inv.method] || esc(inv.method)}</b></div>
+    </div>
+    <div class="a4-pay num">
+      <div><span class="a4-kicker">Bankovní účet</span><b>${esc(inv.account)}</b></div>
+      <div><span class="a4-kicker">IBAN</span><b>${ibanFmt(iban)}</b></div>
+      <div><span class="a4-kicker">Var. symbol</span><b>${esc(inv.vs) || '—'}</b></div>
+      <div><span class="a4-kicker">Konst. s.</span><b>${esc(inv.ks) || '—'}</b></div>
+    </div>
+    <table class="a4-items">
+      <thead><tr><th>Označení dodávky</th><th class="r">Množství</th><th class="r">Cena / MJ</th><th class="r">DPH</th><th class="r">Bez DPH</th></tr></thead>
+      <tbody>${items}</tbody>
+    </table>
+    <div class="a4-bottom" style="${inv.qr ? '' : 'grid-template-columns:1fr'}">
+      ${inv.qr ? `<div class="a4-qr">${qrSvg(spayd)}<div class="a4-qr__cap"><b>QR Platba</b><span>${acc.swift || ''}</span></div></div>` : ''}
+      <div>
+        <table class="a4-recap"><thead><tr><th>Sazba</th><th>Základ</th><th>DPH</th><th>Celkem</th></tr></thead><tbody>${recap}</tbody></table>
+        ${t.rounding ? `<div class="a4-round"><span>Zaokrouhlení</span><span class="num">${fmt2.format(t.rounding)}</span></div>` : ''}
+        <div class="a4-grand"><span>Celkem k úhradě</span><b class="num">${kc(t.grand)}</b></div>
+      </div>
+    </div>
+    ${inv.note ? `<div class="a4-note">${esc(inv.note)}</div>` : ''}
+    <div class="a4-spacer"></div>
+    <div class="a4-foot"><span>${SUPPLIER.reg}</span><span class="nowrap">${SUPPLIER.email}<br>${SUPPLIER.phone}</span></div>`;
+}
+
+function syncEditor(){ renderTotals(); renderPreview(); }
+
+function fillForm(){
+  $('#f-number').value = inv.number;
+  $('#f-issued').value = inv.issued;
+  $('#f-duzp').value = inv.duzp;
+  $('#f-vs').value = inv.vs;
+  $('#f-ks').value = inv.ks;
+  $('#f-note').value = inv.note;
+  $('#f-qr').checked = inv.qr;
+  $('#f-method').value = inv.method;
+  $('#f-account').innerHTML = Object.keys(ACCOUNTS).map(a => `<option value="${a}">${a} · ${ACCOUNTS[a].label}</option>`).join('');
+  $('#f-account').value = inv.account;
+  $('#f-ico').value = inv.customer.ico;
+  $$('[data-c]').forEach(el => { el.value = inv.customer[el.dataset.c] || ''; });
+  $$('#due-seg button').forEach(b => b.setAttribute('aria-pressed', Number(b.dataset.days) === inv.dueDays));
+  aresIdle();
+  renderItems();
+  syncEditor();
+}
+
+/* ARES (simulace) */
+const SAMPLE_ICO = ['24681351','05213479','19876548'];
+function aresIdle(){
+  const st = $('#ares-status'); st.className = 'hint';
+  st.innerHTML = 'Ukázková IČO: ' + SAMPLE_ICO.map(i => `<button type="button" class="link link--quiet num" data-ico="${i}">${i}</button>`).join(' · ');
+}
+function aresLoad(){
+  const ico = $('#f-ico').value.replace(/\D/g,'');
+  const st = $('#ares-status'), field = $('#f-ico'), btn = $('#btn-ares');
+  field.classList.remove('is-error');
+  if(!icoValid(ico)){
+    field.classList.add('is-error'); st.className = 'hint hint--error';
+    st.textContent = ico.length !== 8 ? 'IČO má 8 číslic. Doplňte chybějící čísla.' : 'IČO nemá platný kontrolní součet. Zkontrolujte poslední číslici.';
+    return;
+  }
+  btn.classList.add('is-loading'); st.className = 'hint hint--loading'; st.textContent = 'Načítám údaje z ARES…';
+  setTimeout(() => {
+    btn.classList.remove('is-loading');
+    const d = CLIENTS[ico];
+    if(!d){ st.className = 'hint hint--error'; st.textContent = `Subjekt s IČO ${ico} jsme v ARES nenašli. Vyplňte údaje ručně.`; return; }
+    Object.assign(inv.customer, { ico, name:d.name, dic:d.dic, street:d.street, city:d.city, zip:d.zip, email:d.email || '' });
+    inv.aresOk = true;
+    $$('[data-c]').forEach(el => { el.value = inv.customer[el.dataset.c] || ''; el.classList.add('is-filled'); setTimeout(() => el.classList.remove('is-filled'), 900); });
+    st.className = 'hint hint--ok';
+    st.textContent = `Ověřeno v ARES ${fd(TODAY)} · ${d.vat ? 'plátce DPH' : 'není plátce DPH'} · ${d.city}`;
+    syncEditor();
+  }, 700);
+}
+$('#btn-ares').addEventListener('click', aresLoad);
+$('#f-ico').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); aresLoad(); } });
+$('#f-ico').addEventListener('input', e => {
+  const v = e.target.value.replace(/\D/g,'').slice(0,8); e.target.value = v; inv.customer.ico = v;
+  e.target.classList.remove('is-error');
+  if(v.length === 8 && !icoValid(v)){ e.target.classList.add('is-error'); const st = $('#ares-status'); st.className = 'hint hint--error'; st.textContent = 'IČO nemá platný kontrolní součet. Zkontrolujte poslední číslici.'; }
+  else if(v.length < 8) aresIdle();
+  renderPreview();
+});
+$('#ares-status').addEventListener('click', e => { const b = e.target.closest('[data-ico]'); if(!b) return; $('#f-ico').value = b.dataset.ico; aresLoad(); });
+$$('[data-c]').forEach(el => el.addEventListener('input', () => { inv.customer[el.dataset.c] = el.value; renderPreview(); }));
+
+$('#f-number').addEventListener('input', e => { inv.number = e.target.value; if(!inv.vsManual){ inv.vs = inv.number.replace(/\D/g,'').slice(0,10); $('#f-vs').value = inv.vs; } renderPreview(); });
+$('#f-vs').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g,''); inv.vs = e.target.value; inv.vsManual = true; renderPreview(); });
+$('#f-ks').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g,''); inv.ks = e.target.value; renderPreview(); });
+$('#f-issued').addEventListener('input', e => { inv.issued = e.target.value; renderPreview(); });
+$('#f-duzp').addEventListener('input', e => { inv.duzp = e.target.value; renderPreview(); });
+$('#f-note').addEventListener('input', e => { inv.note = e.target.value; renderPreview(); });
+$('#f-qr').addEventListener('change', e => { inv.qr = e.target.checked; renderPreview(); });
+$('#f-method').addEventListener('change', e => { inv.method = e.target.value; renderPreview(); });
+$('#f-account').addEventListener('change', e => { inv.account = e.target.value; renderPreview(); });
+$('#due-seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  inv.dueDays = Number(b.dataset.days);
+  $$('#due-seg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  renderPreview();
+});
+
+$('#items').addEventListener('input', e => {
+  const row = e.target.closest('.item'); if(!row) return;
+  const it = inv.items.find(i => i.id === Number(row.dataset.id)); const f = e.target.dataset.f;
+  it[f] = f === 'vat' ? Number(e.target.value) : e.target.value;
+  $('.item__sum', row).textContent = kc2(parseNum(it.qty) * parseNum(it.price));
+  syncEditor();
+});
+$('#items').addEventListener('click', e => {
+  const b = e.target.closest('[data-del]'); if(!b) return;
+  if(inv.items.length === 1){ toast('Faktura musí mít alespoň jednu položku.'); return; }
+  inv.items = inv.items.filter(i => i.id !== Number(b.dataset.del));
+  renderItems(); syncEditor();
+});
+$('#btn-add').addEventListener('click', () => { const it = newItem('', 1, 'ks', 0, 21); inv.items.push(it); renderItems(it.id); syncEditor(); });
+
+$('#btn-draft').addEventListener('click', () => toast(`Koncept faktury ${inv.number} uložen.`));
+$('#btn-pdf').addEventListener('click', () => window.print());
+$('#btn-print').addEventListener('click', () => window.print());
+$('#btn-issue').addEventListener('click', () => {
+  const c = inv.customer;
+  if(!c.name){
+    $('#f-ico').classList.add('is-error'); $('#f-ico').focus();
+    const st = $('#ares-status'); st.className = 'hint hint--error'; st.textContent = 'Doplňte odběratele — stačí zadat IČO a načíst údaje z ARES.';
+    toast('Fakturu nelze vystavit bez odběratele.');
+    return;
+  }
+  const t = totals(); const due = addDays(pd(inv.issued) || TODAY, inv.dueDays);
+  if(!CLIENTS[c.ico]) CLIENTS[c.ico || ('x' + Date.now())] = { name:c.name, email:c.email };
+  INVOICES.unshift({ no:inv.number, ico:c.ico, name:c.name, issued:inv.issued, due:iso(due), amount:t.grand, state:'sent', paid:null });
+  toast(`Faktura ${inv.number} na ${kc(t.grand)} vystavena${c.email ? ' a odeslána na ' + c.email : ''}.`);
+  inv = freshInvoice(nextNumber()); fillForm();
+  filter = 'all'; location.hash = '#faktury';
+  renderAll();
+});
+
+/* ---------- router ---------- */
+const VIEWS = ['prehled','faktury','nova','design'];
+let current = null;
+function route(){
+  const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'prehled';
+  $$('.view').forEach(s => s.hidden = s.id !== 'view-' + v);
+  $$('.mainnav a').forEach(a => a.dataset.view === v ? a.setAttribute('aria-current','page') : a.removeAttribute('aria-current'));
+  document.title = $('#view-' + v).dataset.title + ' — Manymy';
+  if(current !== v) window.scrollTo(0, 0);
+  current = v;
+  if(v === 'prehled') renderChart();
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-stub]'); if(!a) return;
+  e.preventDefault();
+  toast(`Sekce „${a.dataset.stub}“ je specifikovaná v DESIGN.md — v tomto mockupu ji nezobrazujeme.`);
+});
+window.addEventListener('hashchange', route);
+let rz; window.addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(renderChart); });
+
+function renderAll(){ renderOverview(); renderInvoices(); }
+
+inv = freshInvoice(nextNumber());
+fillForm();
+renderAll();
+route();
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(renderChart);
+})();
+</script>
+</body>
+</html>
